@@ -153,7 +153,7 @@ PyYAML==6.0.2
 pyzmq==26.3.0
 RapidFuzz==3.13.0
 redis==5.2.1
-redisvl==0.5.2
+redisvl==0.4.1
 referencing==0.36.2
 regex==2024.11.6
 rejson==0.5.6
