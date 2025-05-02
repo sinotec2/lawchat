@@ -1,0 +1,62 @@
+index:
+  name: 廢棄物清理法-summaries
+  prefix: 廢棄物清理法-summaries/vector
+  key_separator: _
+  storage_type: hash
+fields:
+- name: id
+  type: tag
+  attrs:
+    sortable: false
+- name: chapter
+  type: tag
+  attrs:
+    sortable: false
+- name: article
+  type: tag
+  attrs:
+    sortable: false
+- name: item
+  type: tag
+  attrs:
+    sortable: false
+- name: clause
+  type: tag
+  attrs:
+    sortable: false
+- name: points
+  type: tag
+  attrs:
+    sortable: false
+- name: LawName
+  type: tag
+  attrs:
+    sortable: false
+- name: parentname
+  type: tag
+  attrs:
+    sortable: false
+- name: LawDate
+  type: tag
+  attrs:
+    sortable: false
+- name: fullpath
+  type: tag
+  attrs:
+    sortable: false
+- name: doc_id
+  type: tag
+  attrs:
+    sortable: false
+- name: text
+  type: text
+  attrs:
+    sortable: false
+- name: vector
+  type: vector
+  attrs:
+    dims: 768
+    algorithm: hnsw
+    datatype: float32
+    distance_metric: cosine
+version: 0.1.0
