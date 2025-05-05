@@ -8,7 +8,7 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.embeddings.ollama import OllamaEmbedding
 
 from llama_index.core import SimpleDirectoryReader, Settings
-llm = Ollama(model="llama3.1:latest", request_timeout=360.0, base_url="http://l40.sinotech-eng.com:55083/",
+llm = Ollama(model="llama3.1:latest", request_timeout=360.0, base_url="http://172.20.31.7:55083/",
         temperature=0.2,
         system_prompt="""You are an expert on
         the environmental engineering and your
@@ -26,7 +26,7 @@ Settings.embed_model = OllamaEmbedding(
         dimensionality=768,
         request_timeout=360.0,
         num_workers=10,
-        base_url="http://l40.sinotech-eng.com:55083/",)
+        base_url="http://172.20.31.7:55083/",)
 
 def init_router_engine(username,lawname):
     from llama_index.vector_stores.redis import RedisVectorStore

@@ -7,7 +7,7 @@ from llama_index.core import StorageContext,load_index_from_storage
 def ollama_settings():
     from llama_index.llms.ollama import Ollama
     from llama_index.embeddings.ollama import OllamaEmbedding
-    Settings.llm = Ollama(model="llama3.1:latest", request_timeout=360.0, base_url="http://l40.sinotech-eng.com:55083/",
+    Settings.llm = Ollama(model="llama3.1:latest", request_timeout=360.0, base_url="http://172.20.31.7:55083/",
         temperature=0.2,
         system_prompt="""You are an expert on
         the environmental engineering and your
@@ -23,7 +23,7 @@ def ollama_settings():
         model_name="nomic-embed-text:latest",
         dimensionality=768,
         request_timeout=360.0,
-        base_url="http://l40.sinotech-eng.com:55083/",)
+        base_url="http://172.20.31.7:55083/",)
     return True
 
 def load_documents(json_path):
