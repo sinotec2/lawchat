@@ -156,7 +156,6 @@ redis==5.2.1
 redisvl==0.4.1
 referencing==0.36.2
 regex==2024.11.6
-rejson==0.5.6
 requests==2.32.3
 rpds-py==0.24.0
 rsa==4.9
