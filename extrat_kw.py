@@ -143,7 +143,7 @@ def select_law(fixed_path,lawname,username):
         code.append({"text":f"{df.iloc[i,4]}","metadata":{k:v for k,v in zip(keys,vals)}})
         abst.append({"text":f"{df.iloc[i,6]}","metadata":{k:v for k,v in zip(keys,vals)}})
         kwds.append({"text":f"{df.iloc[i,7]}","metadata":{k:v for k,v in zip(keys,vals)}})
-    folder_path = f"./data/{username}"
+    folder_path = f"/app/data/{username}"
     os.system(f"mkdir -p {folder_path}")
     with open(os.path.join(folder_path,'laws.json'),'w',encoding='utf-8') as f:
         json.dump(code, f, ensure_ascii=False)

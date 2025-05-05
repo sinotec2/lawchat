@@ -64,7 +64,7 @@ def build_save(json_path):
     REDIS_HOST=f"default:{redis_key}@172.20.31.1"
     redis_client = Redis.from_url(f"redis://{REDIS_HOST}:6379")
     username=json_path.split('/')[1]
-    yaml=f'data/{username}/envlaws.yam'
+    yaml=f'/app/data/{username}/envlaws.yam'
 
     docs=load_documents(json_path)
     lawname=docs[0].metadata[ 'LawName']

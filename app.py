@@ -40,7 +40,7 @@ def now_on():
 
 def rd_rec(username):
     entries = defaultdict(list)
-    with open(f"data/{username}/search_his.log","r", encoding="utf-8") as f:
+    with open(f"/app/data/{username}/search_his.log","r", encoding="utf-8") as f:
         for line in f:
             try:
                 name, timestamp_str = line.rsplit(" ", 6)[0], line.strip('\n').rsplit(" ", 6)[-6:]
@@ -280,8 +280,8 @@ if st.session_state["regulation"]:
         if username:
             greeting,timestamp=now_on()
             st.write(f"{username}{greeting}")
-            os.system(f"mkdir -p data/{username}")
-            with open(f"data/{username}/search_his.log","a", encoding="utf-8") as f:
+            os.system(f"mkdir -p /app/data/{username}")
+            with open(f"/app/data/{username}/search_his.log","a", encoding="utf-8") as f:
                 f.write(f"{regulation} {timestamp}\n")
 
         st.sidebar.header("法規資訊")

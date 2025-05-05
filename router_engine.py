@@ -48,7 +48,7 @@ def init_router_engine(username,lawname):
     indices=[]
     for s in sources:
         pattern = f"{lawname}-{s}*"
-        yaml=f'data/{username}/envlaws-{s}.yaml'
+        yaml=f'/app/data/{username}/envlaws-{s}.yaml'
         res=wrt_yaml(yaml,f"{lawname}-{s}")
         if any(r.scan_iter(pattern)):
             vector_store = RedisVectorStore(schema=IndexSchema.from_yaml(yaml),redis_client=r, overwrite=False)
@@ -62,7 +62,7 @@ def init_router_engine(username,lawname):
                 index_store=RedisIndexStore.from_host_and_port(
                     host=REDIS_HOST, port=REDIS_PORT, namespace=namespace),
                 vector_store=vector_store,)
-            fname=f"data/{username}/{s}.json"    
+            fname=f"/app/data/{username}/{s}.json"    
             docs = load_documents(fname)
             index = VectorStoreIndex.from_documents(docs, storage_context=storage_context)
             indices.append(index)
