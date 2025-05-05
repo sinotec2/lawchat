@@ -105,7 +105,7 @@ if "username" not in st.session_state:
     st.session_state["username"] = False
 #cmd="/usr/bin/curl -s -k -I -u yckuang:*** https://172.20.31.6/ICT.law_query/ -o ldap.json;grep X-LDAP-User ldap.json|cut -d' ' -f2"
 #    st.session_state["username"] = subprocess.check_output(cmd,shell=True).decode('utf8').strip('\r\n')
-st.session_state["username"] = get_latest_username('./access.log') 
+st.session_state["username"] = get_latest_username('/app/access.log') 
 username=st.session_state["username"] 
 
 
