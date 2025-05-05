@@ -97,7 +97,7 @@ def define_fields(tag):
                                         st.session_state["regset"] = get_lnames(subcategories[sub_category])["all"]
     return st.session_state["regset"] 
 results=None
-folder_path="./json/"
+folder_path="/app/json/"
 metadata_pool,keyword_pool=make_pools(folder_path)
 laws=laws_dict()
 mom=[i.strip().replace('\n','') for i in get_mom()]
@@ -114,7 +114,7 @@ st.title("📚環保法規查詢小助手⚖️")
 
 #load the old law name from history json
 if "regulation" not in st.session_state:
-    st.session_state["regulation"] = get_lname(f"data/{username}/laws.json",folder_path)
+    st.session_state["regulation"] = get_lname(f"/app/data/{username}/laws.json",folder_path)
 if "show_laws" not in st.session_state:
     st.session_state["show_laws"] = False
 if "regset" not in st.session_state:
@@ -130,7 +130,7 @@ regulation=st.session_state["regulation"]
 
 field_dir={"all":"json","所有領域":"json","空污相關法規":"air","環評、生態與噪音法規":"eia","土壤與毒性物質相關法規":"soil","廢棄物相關法規":"waste","水污染相關法規":"water"}
 field, main_category, sub_categor=reverse_lookup(regulation)
-fname=f"./json/all_keywords_{field_dir[field]}.txt"
+fname=f"/app/json/all_keywords_{field_dir[field]}.txt"
 all_keywords=get_all_keywords(fname)
 all_laws=get_lnames(laws)
 keywords_data=all_keywords
