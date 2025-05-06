@@ -5,7 +5,7 @@ from extrat_kw import extract_keywords_from_query, make_pools, select_law, get_l
 	 reverse_lookup, reverse_lookupV
 from redis_es import get_all_keywords, get_laws_by_keyword, get_keywords_from_laws, get_laws_by_keywords, display_laws_table,\
          get_laws_by_word
-from util_k import copy_to_clipboard_ui, get_latest_username
+from util_k import copy_to_clipboard_ui, get_latest_username_csv
 from redis_srch import  create_law_index_if_not_exists, code_retrieval
 import json
 import ast
@@ -105,7 +105,7 @@ if "username" not in st.session_state:
     st.session_state["username"] = False
 #cmd="/usr/bin/curl -s -k -I -u yckuang:*** https://172.20.31.6/ICT.law_query/ -o ldap.json;grep X-LDAP-User ldap.json|cut -d' ' -f2"
 #    st.session_state["username"] = subprocess.check_output(cmd,shell=True).decode('utf8').strip('\r\n')
-st.session_state["username"] = get_latest_username('/app/access.log') 
+st.session_state["username"] = get_latest_username('/app/ip_email.csv') 
 username=st.session_state["username"] 
 
 

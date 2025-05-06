@@ -2,6 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import jieba
 from datetime import datetime, timezone, timedelta
+from ldap3 import Server, Connection, ALL
 
 import re
 
@@ -65,3 +66,67 @@ def get_latest_username(log_file):
                 closest_username = username
 
     return closest_username
+
+def get_latest_username_csv(log_file):
+
+    import pandas as pd
+    ipdb=pd.read_csv(log_file)
+    ip=st.context.ip_address
+    if ip in set(ipdb.ip):
+        username = list(ipdb.loc[ipdb.ip==ip,'email'])[0]
+        if type(username)==str:
+            return username
+    username=authenticate_user()
+    if st.session_state['username'] and st.session_state['password'] and not username:
+        return False
+    else:
+        if st.session_state['username'] and st.session_state['password'] and type(username)==str:
+            n=len(ipdb)
+            ipdb.loc[n,'ip']=ip
+            ipdb.loc[n,'email']=username
+            ipdb=ipdb.loc[ipdb.email.map(lambda x:type(x)==str)].reset_index(drop=True)
+            ipdb.to_csv(log_file,index=False)
+        return username
+def ldap_login(username, password):
+    BASE_DN = "dc=sinotech-eng,dc=com"
+    if st.session_state['username'] and st.session_state['password'] and not st.session_state['connection']:
+        user = f"uid={username},cn=users,cn=accounts,{BASE_DN}"
+        server = Server('ldap://node03.sinotech-eng.com', get_info=ALL)
+        try:
+            conn = Connection(server, user, password, auto_bind=True)
+        except:
+            with st.sidebar:
+                st.error('無效的憑證')  # 顯示錯誤訊息
+            return None
+        return conn
+    return None
+
+# 從 session_state 中取得使用者憑證
+def get_ldap_credentials():
+    if 'username' not in st.session_state:
+        st.session_state['username'] = False
+    if 'password' not in st.session_state:
+        st.session_state['password'] = False
+    if not st.session_state['username']:
+        with st.sidebar:
+            st.session_state['username'] = st.text_input('使用者名稱') #,  key='username')
+            if not st.session_state['password']:
+                st.session_state['password'] = st.text_input('密碼', type='password') #, key='password')  # 密碼輸入框
+    username = st.session_state['username']
+    password = st.session_state['password']
+    return username, password
+
+# 驗證使用者登入
+def authenticate_user():
+    if 'connection' not in  st.session_state:
+        st.session_state['connection']=False
+    if not st.session_state['connection']:
+        username, password=get_ldap_credentials()
+        conn = ldap_login(username, password)
+        if st.session_state['username'] and st.session_state['password']:
+            if not conn:
+                return False
+            st.session_state['connection']=conn
+            return username
+        return None
+    return  st.session_state['username']
