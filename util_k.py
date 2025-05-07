@@ -41,7 +41,7 @@ def copy_to_clipboard_ui0(i,text):
     <button onclick="appendToClipboard(document.getElementById('copy_area{i}').value)">➕新增</button>
     """, height=100)
 
-def get_latest_username(log_file):
+def get_latest_username_accesslog(log_file):
     with open(log_file, 'r') as file:
         lines = [line for line in file if "/law_query/ HTTP/1.1" in line]
 

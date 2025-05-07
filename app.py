@@ -5,7 +5,7 @@ from extrat_kw import extract_keywords_from_query, make_pools, select_law, get_l
 	 reverse_lookup, reverse_lookupV
 from redis_es import get_all_keywords, get_laws_by_keyword, get_keywords_from_laws, get_laws_by_keywords, display_laws_table,\
          get_laws_by_word
-from util_k import copy_to_clipboard_ui, get_latest_username
+from util_k import copy_to_clipboard_ui, get_latest_username_accesslog
 from redis_srch import  create_law_index_if_not_exists, code_retrieval
 import json
 import ast
@@ -23,6 +23,7 @@ def search_law(query: str):
         return None
 
 def search_keyword(query: str) -> list:
+    keywords_data=st.session_state["keywords_data"]
     return [kw for kw in keywords_data if query in kw]
 def now_on():
     now =  datetime.now()
@@ -114,7 +115,7 @@ def main():
 #    st.session_state["username"] = subprocess.check_output(cmd,shell=True).decode('utf8').strip('\r\n')
     st.set_page_config(page_title="法規查詢小助手", layout="wide")
     if not st.session_state["username"]:
-        st.session_state["username"] = get_latest_username('./access.log') 
+        st.session_state["username"] = get_latest_username_accesslog('./access.log') 
     username=st.session_state["username"] 
 
 
@@ -127,6 +128,8 @@ def main():
         st.session_state["show_laws"] = False
     if "regset" not in st.session_state:
         st.session_state["regset"] = False
+    if "keywords_data" not in st.session_state:
+        st.session_state["keywords_data"]=False
 
 
     # 根據狀態決定按鈕顯示文字
@@ -140,6 +143,7 @@ def main():
     all_keywords=get_all_keywords(fname)
     all_laws=get_lnames(laws)
     keywords_data=all_keywords
+    st.session_state["keywords_data"]=keywords_data
 
     with open(os.path.join(folder_path, f"{regulation}.json"), 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -238,6 +242,7 @@ def main():
     elif mode == "關鍵字搜尋":
         # 第一個關鍵詞搜尋框
         keywords_data=all_keywords
+        st.session_state["keywords_data"]=keywords_data
         col21, col22, co2l, col24 = st.columns(4)
         with col21:
             kw1 = st_searchbox(search_keyword, key="keyword_search1", placeholder="輸入關鍵字")
@@ -247,6 +252,7 @@ def main():
                 second_keywords = get_keywords_from_laws(related_law_ids)
                 second_keywords.discard(kw1)
                 keywords_data = [kw for kw in all_keywords if kw in second_keywords]
+                st.session_state["keywords_data"]=keywords_data
                 results = get_laws_by_keywords(set([kw1]+[kw1]), mode="and")         
            
                 kw2 = st_searchbox(search_keyword, key="keyword_search2", placeholder=f"輸入關鍵字如:{keywords_data[0]}")
