@@ -61,6 +61,7 @@ def rd_rec(username):
 
 def define_fields(tag):
     laws=laws_dict()
+    all_laws=get_lnames(laws)
     col11, col12, col13, col14 = st.columns(4)
     regset=[]
     if st.session_state["regulation"]:
