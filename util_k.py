@@ -43,7 +43,7 @@ def copy_to_clipboard_ui0(i,text):
 
 def get_latest_username(log_file):
     with open(log_file, 'r') as file:
-        lines = file.readlines()
+        lines = [line for line in file if "/law_query/ HTTP/1.1" in line]
 
     current_time = datetime.now(timezone.utc)
     closest_username = None
