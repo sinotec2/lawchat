@@ -68,30 +68,24 @@ def get_latest_username(log_file):
     return closest_username
 
 def get_latest_username_csv(log_file):
+    if 'connection' not in  st.session_state:
+        st.session_state['connection']=False
 
-    import pandas as pd
-    ipdb=pd.read_csv(log_file)
-    ip=st.context.ip_address
-    if ip in set(ipdb.ip):
-        username = list(ipdb.loc[ipdb.ip==ip,'email'])[0]
-        if type(username)==str:
-            return username
-    username=authenticate_user()
-    if st.session_state['username'] and st.session_state['password'] and not username:
-        return False
+    if not st.session_state['connection']:
+        username=authenticate_user()
+        if st.session_state['username'] and st.session_state['password'] and not username:
+            return False
+        return username
     else:
         if st.session_state['username'] and st.session_state['password'] and type(username)==str:
-            n=len(ipdb)
-            ipdb.loc[n,'ip']=ip
-            ipdb.loc[n,'email']=username
-            ipdb=ipdb.loc[ipdb.email.map(lambda x:type(x)==str)].reset_index(drop=True)
-            ipdb.to_csv(log_file,index=False)
-        return username
+            return username
+        return False
+
 def ldap_login(username, password):
     BASE_DN = "dc=sinotech-eng,dc=com"
     if st.session_state['username'] and st.session_state['password'] and not st.session_state['connection']:
         user = f"uid={username},cn=users,cn=accounts,{BASE_DN}"
-        server = Server('ldap://node03.sinotech-eng.com', get_info=ALL)
+        server = Server('ldap://172.20.31.3', get_info=ALL)
         try:
             conn = Connection(server, user, password, auto_bind=True)
         except:
@@ -118,8 +112,6 @@ def get_ldap_credentials():
 
 # 驗證使用者登入
 def authenticate_user():
-    if 'connection' not in  st.session_state:
-        st.session_state['connection']=False
     if not st.session_state['connection']:
         username, password=get_ldap_credentials()
         conn = ldap_login(username, password)
