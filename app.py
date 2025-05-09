@@ -66,6 +66,7 @@ def define_fields(tag):
     col11, col12, col13, col14 = st.columns(4)
     regset=[]
     if st.session_state["regulation"]:
+        regulation = st.session_state["regulation"]
         try:
             m, n, l, k=reverse_lookupV(regulation)
         except:
@@ -130,6 +131,8 @@ def main():
         st.session_state["regset"] = False
     if "keywords_data" not in st.session_state:
         st.session_state["keywords_data"]=False
+    if "his_selected" not in st.session_state:
+        st.session_state["his_selected"]=False
 
 
     # 根據狀態決定按鈕顯示文字
@@ -205,10 +208,14 @@ def main():
     elif mode == "曾經開啟":
         his_seq = []
         if username:
-            his_seq = rd_rec(username)
+            if regulation:
+                his_seq = [regulation]+[i for i in rd_rec(username) if i !=regulation ]
+            else:
+                his_seq = rd_rec(username)
         his_selected = st.selectbox("您曾選擇", his_seq)
         if his_selected: 
             st.session_state["regulation"]=his_selected
+            regulation=his_selected
     elif mode == "直接開啟":
         dir_selected = st.text_input("貼上法規名稱")
         if dir_selected:

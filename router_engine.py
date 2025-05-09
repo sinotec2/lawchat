@@ -21,9 +21,10 @@ llm = Ollama(model="llama3.1:latest", request_timeout=360.0, base_url="http://17
         """,
         )
 Settings.llm = llm
+#        model_name="nomic-embed-text:latest",
 Settings.embed_model = OllamaEmbedding(
-        model_name="nomic-embed-text:latest",
-        dimensionality=768,
+        model_name="quentinz/bge-large-zh-v1.5:latest",
+        dimensionality=1024,
         request_timeout=360.0,
         num_workers=10,
         base_url="http://172.20.31.7:55083/",)

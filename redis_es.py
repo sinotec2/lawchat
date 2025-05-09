@@ -90,9 +90,12 @@ def display_laws_table(keys,view_type,srch_str):
             df=pd.DataFrame({'no':[i+1 for i in range(len(lawnames))],'lawname':lawnames})
             df=df.drop_duplicates()
             st.write("開啟法規")
+            written=[]
             for num in df.index:
                 n=df.no[num]
                 lawname=df.lawname[num]
+                if lawname in written: continue
+                written.append(lawname)
                 bn=f"{n}.{lawname[:5]}..."
                 open_law(bn,lawname)
         if view_type == "文字":

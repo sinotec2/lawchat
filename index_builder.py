@@ -9,6 +9,7 @@ def ollama_settings():
     from llama_index.embeddings.ollama import OllamaEmbedding
     Settings.llm = Ollama(model="llama3.1:latest", request_timeout=360.0, base_url="http://172.20.31.7:55083/",
         temperature=0.2,
+        dimensionality=1024,
         system_prompt="""You are an expert on
         the environmental engineering and your
         job is to answer technical questions.
@@ -19,9 +20,10 @@ def ollama_settings():
         Answer questions in tradition chinese.
         """,
         )
+#        model_name="nomic-embed-text:latest",
     Settings.embed_model = OllamaEmbedding(
-        model_name="nomic-embed-text:latest",
-        dimensionality=768,
+        model_name="quentinz/bge-large-zh-v1.5:latest",
+        dimensionality=1024,
         request_timeout=360.0,
         base_url="http://172.20.31.7:55083/",)
     return True
@@ -45,7 +47,7 @@ def wrt_yaml(yaml,lawname):
         for c in col:
             f.write(f"- name: {c}\n  type: tag\n  attrs:\n    sortable: false\n")
         f.write(f"- name: text\n  type: text\n  attrs:\n    sortable: false\n")
-        f.write(f"- name: vector\n  type: vector\n  attrs:\n    dims: 768\n    algorithm: hnsw\n    datatype: float32\n    distance_metric: cosine\nversion: 0.1.0\n")
+        f.write(f"- name: vector\n  type: vector\n  attrs:\n    dims: 1024\n    algorithm: hnsw\n    datatype: float32\n    distance_metric: cosine\nversion: 0.1.0\n")
     return True
 
 def build_save(json_path):
@@ -64,7 +66,7 @@ def build_save(json_path):
     REDIS_HOST=f"default:{redis_key}@172.20.31.1"
     redis_client = Redis.from_url(f"redis://{REDIS_HOST}:6379")
     username=json_path.split('/')[1]
-    yaml=f'/app/data/{username}/envlaws.yam'
+    yaml=f'data/{username}/envlaws.yam'
 
     docs=load_documents(json_path)
     lawname=docs[0].metadata[ 'LawName']
