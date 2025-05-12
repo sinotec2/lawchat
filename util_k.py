@@ -41,43 +41,38 @@ def copy_to_clipboard_ui0(i,text):
     <button onclick="appendToClipboard(document.getElementById('copy_area{i}').value)">➕新增</button>
     """, height=100)
 
-def get_latest_username_accesslog(log_file):
-    with open(log_file, 'r') as file:
-        lines = [line for line in file if "/law_query/ HTTP/1.1" in line]
+def get_latest_username_cookie():
+    from streamlit_cookies_controller import CookieController
+    controller = CookieController()
+    # Get all cookies
+    cookies = controller.getAll()
+    duration=8*60*60
+    if cookies and 'cookie_name' in cookies and cookies.get('cookie_name'):
+        if 'connection' not in  st.session_state or not st.session_state['connection']:
+            st.session_state['connection']=True
+        username=cookies.get('cookie_name')
+        return username
 
-    current_time = datetime.now(timezone.utc)
-    closest_username = None
-    closest_time_diff = timedelta.max
-
-    # 正則表達式模式
-    pattern = r' - (\S+) \[(.*?)\]'
-
-    for line in lines[-10:]:  # 只讀取最後10行
-        match = re.search(pattern, line)
-        if match:
-            username = match.group(1)  # USERNAME
-            timestamp_str = match.group(2)  # TIMESTAMP
-            timestamp = datetime.strptime(timestamp_str, "%d/%b/%Y:%H:%M:%S %z")
-            
-            # 計算時間差
-            time_diff = abs(current_time - timestamp)
-            if time_diff < closest_time_diff:
-                closest_time_diff = time_diff
-                closest_username = username
-
-    return closest_username
-
-def get_latest_username_csv(log_file):
     if 'connection' not in  st.session_state:
         st.session_state['connection']=False
-
     if not st.session_state['connection']:
         username=authenticate_user()
-        if st.session_state['username'] and st.session_state['password'] and not username:
+        if not username:
+            st.session_state['connection']=False
             return False
-        return username
+        if st.session_state['username'] and st.session_state['password'] and st.session_state['username']!=username:
+            st.session_state['connection']=False
+            return False
+        if not cookies or 'cookie_name' not in cookies or cookies.get('cookie_name')!= username:
+            controller.set('cookie_name', username, max_age=duration)
+            st.rerun()
+            return username
     else:
-        if st.session_state['username'] and st.session_state['password'] and type(username)==str:
+        if st.session_state['username'] and st.session_state['password']:
+            username = st.session_state['username']
+            if 'cookie_name' not in cookies or controller.get('cookie_name')!= username:
+                controller.set('cookie_name', username, max_age=duration)
+                st.rerun()
             return username
         return False
 

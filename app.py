@@ -5,7 +5,7 @@ from extrat_kw import extract_keywords_from_query, make_pools, select_law, get_l
 	 reverse_lookup, reverse_lookupV
 from redis_es import get_all_keywords, get_laws_by_keyword, get_keywords_from_laws, get_laws_by_keywords, display_laws_table,\
          get_laws_by_word
-from util_k import copy_to_clipboard_ui, get_latest_username_accesslog
+from util_k import copy_to_clipboard_ui, get_latest_username_cookie
 from redis_srch import  create_law_index_if_not_exists, code_retrieval
 import json
 import ast
@@ -116,7 +116,7 @@ def main():
 #    st.session_state["username"] = subprocess.check_output(cmd,shell=True).decode('utf8').strip('\r\n')
     st.set_page_config(page_title="法規查詢小助手", layout="wide")
     if not st.session_state["username"]:
-        st.session_state["username"] = get_latest_username_accesslog('./access.log') 
+        st.session_state["username"] = get_latest_username_cookie()
     username=st.session_state["username"] 
 
 
