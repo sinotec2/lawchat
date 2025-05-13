@@ -116,7 +116,7 @@ def main():
 #    st.session_state["username"] = subprocess.check_output(cmd,shell=True).decode('utf8').strip('\r\n')
     st.set_page_config(page_title="法規查詢小助手", layout="wide")
     if not st.session_state["username"]:
-        st.session_state["username"] = get_latest_username_cookie()
+        st.session_state["username"] = get_latest_username_cookie('./access.log') 
     username=st.session_state["username"] 
 
 
@@ -151,17 +151,23 @@ def main():
     with open(os.path.join(folder_path, f"{regulation}.json"), 'r', encoding='utf-8') as f:
         data = json.load(f)
     st.markdown('#### 🌳開啟法規')
-    mode = st.radio(label="",  options=["下拉選單", "關鍵字搜尋", "模糊篩選","曾經開啟","直接開啟" ], horizontal=True)
+    mode = st.radio(label="",  options=["下拉選單", "名稱搜尋", "模糊篩選","曾經開啟","直接開啟" ], horizontal=True)
 
     # 擇一顯示並設定 session_state["regulation"]
+    if regulation:
+        st.session_state["regulation"]=regulation
     if mode == "下拉選單":
     #tree selections
         col1, col2, col3, col4 = st.columns(4)
 
-        if regulation:
+        if st.session_state["regulation"] or regulation:
+            if st.session_state["regulation"]:
+                regulation = st.session_state["regulation"]
             m, n, l, k=reverse_lookupV(regulation)
+            field, main_category, sub_categor=reverse_lookup(regulation)
         else:
             m, n, l, k=(0, 0, 0, 0)
+            field, main_category, sub_categor=["空污相關法規","母法與行政","母法"]
 
         with col1:
             min_m=min(m,len(laws)-1)
@@ -170,28 +176,34 @@ def main():
             if field:
                 laws_field=laws[field]
                 lst=list(laws_field)
-                min_n=min(m,len(lst)-1)
+                min_n=min(n,len(lst)-1)
                 main_category = st.selectbox("主類別", lst,index=min_n)
         with col3:
             subcategories = laws_field[main_category]
             subcats=subcategories
             if type(subcategories)==dict:subcats=list(subcategories)
-            min_l=min(n,len(subcats)-1)
+            min_l=min(l,len(subcats)-1)
             sub_category = st.selectbox("主類別下之子類別", subcats,index=min_l)
         with col4:
             if laws_field[main_category][sub_category]:
                 lst=laws_field[main_category][sub_category]
-                min_k=min(l,len(lst)-1)
+                min_k=min(k,len(lst)-1)
                 st.session_state["regulation"] = st.selectbox("子類別下之法規", lst,index=min_k)
-    elif mode == "關鍵字搜尋":
+    elif mode == "名稱搜尋":
+        if st.session_state["regulation"] or regulation:
+            if st.session_state["regulation"]:
+                regulation = st.session_state["regulation"]
+            field, main_category, sub_categor=reverse_lookup(regulation)
         st.session_state["regset"]=define_fields("🌿")
         if st.session_state["regset"]:
             regset=st.session_state["regset"]
-        st.markdown("法規名稱中的關鍵字")
+        st.markdown("法規名稱中的字詞")
         if regset and len(regset)>0:
-            result = st_searchbox(search_law, key="law_search", placeholder="接輸入關鍵字(部分)")
+            result = st_searchbox(search_law, key="law_search", placeholder="輸入字詞(部分)")
             if result is not None:
                 st.session_state["regulation"] = result
+                regulation=st.session_state["regulation"]
+                field, main_category, sub_categor=reverse_lookup(regulation)
     elif mode == "模糊篩選":
         query = st.text_input(f"請輸入主題😊")
         if st.checkbox("啟用 法規名稱模糊篩選"):
@@ -216,13 +228,15 @@ def main():
         if his_selected: 
             st.session_state["regulation"]=his_selected
             regulation=his_selected
+            field, main_category, sub_categor=reverse_lookup(regulation)
+           
     elif mode == "直接開啟":
         dir_selected = st.text_input("貼上法規名稱")
         if dir_selected:
             if dir_selected in all_laws['all']: 
                 st.session_state["regulation"]=dir_selected
                 regulation = st.session_state["regulation"]
-                field="all" #, main_category, sub_categor=reverse_lookup(regulation)
+                field, main_category, sub_categor=reverse_lookup(regulation)
             else:
                 st.markdown(f"你確定有法規名稱包含**{dir_selected}**😜")            
     dir_mods= ["關鍵字搜尋", "全文搜尋", ]# "模糊篩選" ,
@@ -243,8 +257,9 @@ def main():
                 else:
                     s=len(results)
                     st.markdown(f"找到<span style='color:red;font-weight:bold'>{s}</span>筆", unsafe_allow_html=True)
-                    view_type = st.radio("顯示方式", ["表格", "文字"], horizontal=True)
-                    display_laws_table([i for i in results if "not found" not in i],view_type,word)
+                    display_laws_table([i for i in results if "not found" not in i],word)
+                    if st.session_state["regulation"]:
+                        regulation=st.session_state["regulation"]
          
     elif mode == "關鍵字搜尋":
         # 第一個關鍵詞搜尋框
@@ -268,10 +283,9 @@ def main():
         if results:
             s=len(results)
             st.markdown(f"找到<span style='color:red;font-weight:bold'>{s}</span>筆", unsafe_allow_html=True)
-            view_type = st.radio("顯示方式", ["表格", "文字"], horizontal=True)
             kw=kw1
             if kw2:kw=kw1+kw2
-            display_laws_table(results,view_type,kw)
+            display_laws_table(results,kw)
     pass_txt="""
     elif mode == "模糊篩選":
         query = st.text_input(f"請輸入主題😊")
@@ -306,6 +320,8 @@ def main():
             st.sidebar.header("法規資訊")
             st.sidebar.subheader("名稱")
             st.sidebar.write(data["LawName"])
+            st.sidebar.subheader("日期")
+            st.sidebar.write(data["LawDate"])
             st.sidebar.subheader("摘要")
             st.sidebar.write(data["abstract"])
             st.sidebar.subheader("條文")
@@ -317,6 +333,10 @@ def main():
                     d=f"第 {i+1} 條"
                     if d not in data["codes"].keys(): continue
                     st.sidebar.write(f"**{d}**",data["codes"][d])
+                    if "tables" in data.keys():
+                        if d in  data["tables"].keys():
+                            tabstr=data["tables"][d].replace('||','|\n|')
+                            st.sidebar.markdown(tabstr, unsafe_allow_html=True)
         result=select_law(folder_path,regulation,username)            
         router_engine = init_router_engine(username,regulation)
 
