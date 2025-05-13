@@ -63,7 +63,7 @@ def parse_key(key):
     clause = parts[3] if len(parts) > 3 else ""
     return lawname, article, clause
 
-def display_laws_table(keys,view_type,srch_str):
+def display_laws_table(keys,srch_str):
 
     """
     根據條文 keys 顯示成 Streamlit 表格
@@ -83,36 +83,36 @@ def display_laws_table(keys,view_type,srch_str):
         })
         i+=1
 
-    cols = st.columns([2,10])  # 欄位分配
-    if rows:
-        with cols[0]:
-            lawnames = [parse_key(key)[0] for key in keys]
-            df=pd.DataFrame({'no':[i+1 for i in range(len(lawnames))],'lawname':lawnames})
-            df=df.drop_duplicates()
-            st.write("開啟法規")
-            written=[]
-            for num in df.index:
-                n=df.no[num]
-                lawname=df.lawname[num]
-                if lawname in written: continue
-                written.append(lawname)
-                bn=f"{n}.{lawname[:5]}..."
-                open_law(bn,lawname)
-        if view_type == "文字":
-            with cols[1]:
-                i=1
-                for key in keys:
-                    klist=key.split(':')
-                    lname=klist[1]
-                    arts=klist[3]
-                    code = r.hget(key, "code") or ""
-                    copy_to_clipboard_ui(i,f"{lname}:{arts}:{code}",srch_str)
-                    i+=1
-        else:
-            with cols[1]:
-                st.dataframe(rows, use_container_width=True)
+    if len(rows)==0:return False
+    lawnames = [parse_key(key)[0] for key in keys]
+    df=pd.DataFrame({'no':[i+1 for i in range(len(lawnames))],'lawname':lawnames})
+    df=df.drop_duplicates()
+    written=[]
+    bn=[]
+    for num in df.index:
+        n=df.no[num]
+        lawname=df.lawname[num]
+        if lawname in written: continue
+        written.append(lawname)
+        bn.append(f"{n}.{lawname}")
+    if bn:
+        selected = st.selectbox("開啟法規", bn)
+        if selected:
+            st.session_state["regulation"]=selected.split('.')[1]
+    view_type = st.radio("顯示方式", ["表格", "文字"], horizontal=True)
+     
+    if view_type == "文字":
+         i=1
+         for key in keys:
+             klist=key.split(':')
+             lname=klist[1]
+             arts=klist[3]
+             code = r.hget(key, "code") or ""
+             copy_to_clipboard_ui(i,f"{lname}:{arts}:{code}",srch_str)
+             i+=1
     else:
-        st.warning("找不到符合條件的條文")
+        st.dataframe(rows, use_container_width=True)
+    return 
 def open_law(buttname,lawname):
     if st.button(buttname, key=buttname):
         st.session_state["regulation"] = lawname
