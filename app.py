@@ -116,7 +116,7 @@ def main():
 #    st.session_state["username"] = subprocess.check_output(cmd,shell=True).decode('utf8').strip('\r\n')
     st.set_page_config(page_title="法規查詢小助手", layout="wide")
     if not st.session_state["username"]:
-        st.session_state["username"] = get_latest_username_cookie('./access.log') 
+        st.session_state["username"] = get_latest_username_cookie() 
     username=st.session_state["username"] 
 
 
