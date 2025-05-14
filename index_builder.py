@@ -7,8 +7,10 @@ from llama_index.core import StorageContext,load_index_from_storage
 def ollama_settings():
     from llama_index.llms.ollama import Ollama
     from llama_index.embeddings.ollama import OllamaEmbedding
-    Settings.llm = Ollama(model="llama3.1:latest", request_timeout=360.0, base_url="http://172.20.31.7:55083/",
-        temperature=0.2,
+    model = "llama3.1:latest"
+    model = "mistral:latest"
+    Settings.llm = Ollama(model=model, request_timeout=360.0, base_url="http://172.20.31.7:55083/",
+        temperature=0.0,
         dimensionality=1024,
         system_prompt="""You are an expert on
         the environmental engineering and your

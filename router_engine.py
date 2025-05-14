@@ -8,8 +8,10 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.embeddings.ollama import OllamaEmbedding
 
 from llama_index.core import SimpleDirectoryReader, Settings
-llm = Ollama(model="llama3.1:latest", request_timeout=360.0, base_url="http://172.20.31.7:55083/",
-        temperature=0.2,
+model = "llama3.1:latest"
+model = "mistral:latest"
+llm = Ollama(model=model, request_timeout=360.0, base_url="http://172.20.31.7:55083/",
+        temperature=0.0,
         system_prompt="""You are an expert on
         the environmental engineering and your
         job is to answer technical questions.
