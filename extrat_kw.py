@@ -140,7 +140,11 @@ def select_law(fixed_path,lawname,username):
         att=""
         if '附件' in df.iloc[i,4] or '附表' in df.iloc[i,4]:att=atts
         vals=[str(k) for k in list(df.iloc[i,[0,5,1,2,3]])+[att]+[lawname]]
-        code.append({"text":f"{df.iloc[i,4]}","metadata":{k:v for k,v in zip(keys,vals)}})
+        art=' '.join(list(df.article[i]))
+        codei=f"{df.iloc[i,4]}"
+        if "tables" in data and art in data["tables"]:
+            codei+=data["tables"][art]
+        code.append({"text":codei,"metadata":{k:v for k,v in zip(keys,vals)}})
         abst.append({"text":f"{df.iloc[i,6]}","metadata":{k:v for k,v in zip(keys,vals)}})
         kwds.append({"text":f"{df.iloc[i,7]}","metadata":{k:v for k,v in zip(keys,vals)}})
     folder_path = f"./data/{username}"
