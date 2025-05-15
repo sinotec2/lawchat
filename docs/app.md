@@ -2,7 +2,7 @@
 
 ## 背景說明
 
-這是一個完整的 環保法規查詢小助手 Web 應用程式，使用 Python 的 Streamlit 建立，整合了 Redis、ElasticSearch、Llama-index 和多種自訂模組，提供使用者互動式的法規檢索體驗。以下為此程式的設計說明：
+這是一個完整的 環保法規查詢小助手 Web 應用程式，使用 Python 的 Streamlit 建立，整合了 Redis、RedisSearch、Llama-index 和多種自訂模組，提供使用者互動式的法規檢索體驗。以下為此程式的設計說明：
 
 ## 程式說明
 
