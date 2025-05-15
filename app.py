@@ -239,7 +239,7 @@ def main():
                 field, main_category, sub_categor=reverse_lookup(regulation)
             else:
                 st.markdown(f"你確定有法規名稱包含**{dir_selected}**😜")            
-    dir_mods= ["關鍵字搜尋", "全文搜尋", ]# "模糊篩選" ,
+    dir_mods= [ "全文搜尋", "關鍵字搜尋", ]# "模糊篩選" ,
     st.markdown('#### 🎣直接搜尋條文')
     mode = st.radio(label="",  options=dir_mods, horizontal=True)
     if mode == "全文搜尋":
@@ -301,7 +301,7 @@ def main():
                 else:
                     st.write(f"再多一點提示囉!😜")
 """
-    st.markdown('#### 🦙詢問llama')
+    st.markdown('#### 🦙詢問地端AI')
     regulation=st.session_state["regulation"]
     query = st.text_input(f"請輸入你的問題(目前資料庫：{regulation})😊")
 
