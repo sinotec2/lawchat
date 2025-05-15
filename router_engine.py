@@ -67,7 +67,9 @@ def init_router_engine(username,lawname):
         pattern = f"{lawname}-{t}*"
         yaml=f'data/{username}/envlaws-{t}.yaml'
         res=wrt_yaml(yaml,f"{lawname}-{t}")
-        keys = list(r.scan_iter(pattern))
+# no new generations of vector
+#        keys = list(r.scan_iter(pattern))
+        keys = yaml 
         if len(keys)>3 :
             vector_store = RedisVectorStore(schema=IndexSchema.from_yaml(yaml),redis_client=r, overwrite=False)
             indices.append(VectorStoreIndex.from_vector_store(vector_store))
