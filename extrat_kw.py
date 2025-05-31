@@ -7,7 +7,7 @@ import json
 import ast
 import pandas as pd
 import shutil  
-
+import streamlit as st
 
 jieba.load_userdict('air_dict.txt')
 
@@ -180,12 +180,19 @@ def get_lnames(in_laws):
     return data
 
 def get_lname(json_name,src_dir):
-    if not os.path.exists(json_name):
-        path_user=os.path.dirname(json_name)
-        os.makedirs(path_user, exist_ok=True)
-        for file in os.listdir(src_dir):  
-            if file.endswith('s.json'):  
-                shutil.copy(os.path.join(src_dir, file), path_user)
+    path_user=os.path.dirname(json_name)
+    os.makedirs(path_user, exist_ok=True)
+    his_file=os.path.join(path_user,"search_his.log")
+    if os.path.exists(his_file):
+        with open(his_file,'r') as f:
+            lines=f.read().split('\n')
+        LawName=lines[-2].split()[0]
+        return LawName
+    for file in os.listdir(src_dir):  
+        if file.endswith('s.json'):  
+            source=os.path.join(src_dir,file)
+            target=os.path.join(path_user,file)
+            shutil.copy(source, target)
     with open(json_name,'r', encoding='utf-8') as f:
         data = json.load(f)
     return data[0]["metadata"]["LawName"]
