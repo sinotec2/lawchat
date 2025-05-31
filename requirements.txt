@@ -1,14 +1,17 @@
 asyncpg==0.30.0
+chromadb==1.0.11
 hiredis==3.1.0
 jieba==0.42.1
 ldap3==2.9.1
 llama-index-core==0.12.28
 llama-index-indices-managed-llama-cloud==0.6.9
+llama-index-packs-raptor==0.3.3
 llama-index-readers-file==0.4.7
 llama-index-readers-llama-parse==0.4.0
 nltk==3.9.1
 llama-index-embeddings-ollama==0.6.0
 llama-index-llms-ollama==0.5.4
+llama-index-llms-openai==0.3.28
 llama-index-storage-docstore-redis==0.3.0
 llama-index-storage-index-store-redis==0.4.0
 llama-index-vector-stores-redis==0.5.0
