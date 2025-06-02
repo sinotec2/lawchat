@@ -124,6 +124,9 @@ def main():
 
     #load the old law name from history json
     if "regulation" not in st.session_state:
+        if st.session_state["username"] == False:
+            st.session_state["regulation"] = "空氣污染防制法"
+    else:
         st.session_state["regulation"] = get_lname(f"data/{username}/laws.json",folder_path)
     if "show_laws" not in st.session_state:
         st.session_state["show_laws"] = False
@@ -303,7 +306,7 @@ def main():
 """
     st.markdown('#### 🦙詢問地端AI')
     regulation=st.session_state["regulation"]
-    query = st.text_input(f"請輸入你的問題(目前資料庫：{regulation})😊")
+    query = st.text_input(f"請輸入你的問題(AI回答可能有誤、務請多方驗證。目前資料庫：{regulation})😊")
 
     if st.session_state["regulation"]:
         regulation=st.session_state["regulation"]

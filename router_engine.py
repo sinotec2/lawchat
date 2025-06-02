@@ -117,10 +117,10 @@ def init_router_engine(username,lawname):
                  description=description)
               ) for engine,name, description in zip(engines, names, descriptions)]
     engines=[index.as_query_engine(similarity_top_k=3) for index in indices]
-    descriptions=["查詢完整法條原文","查詢法條摘要","查詢關鍵詞相關資訊","查詢知識圖譜"]
+    descriptions=[f"查詢{lawname}完整法條原文",f"查詢{lawname}-法條摘要",f"查詢{lawname}關鍵詞相關資訊",f"查詢{lawname}知識圖譜"]
     tools.extend([QueryEngineTool.from_defaults(engine, name=name, description=description) for engine,name, description in zip(engines,names,descriptions)])
     llm2 = OpenAI(model="gpt-4o-mini", api_key=api_key)
-    selector = PydanticSingleSelector.from_defaults(llm=llm2)
+    selector = PydanticMultiSelector.from_defaults(llm=llm2)
     engine = RouterQueryEngine(
         selector=selector, #LLMSingleSelector.from_defaults(llm=llm),
         query_engine_tools=tools,
