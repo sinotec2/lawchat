@@ -128,7 +128,11 @@ def main():
         if st.session_state["username"] == False:
             st.session_state["regulation"] = "空氣污染防制法"
     else:
-        st.session_state["regulation"] = get_lname(f"data/{username}/laws.json",folder_path)
+        if st.session_state["regulation"]:
+            regulation = st.session_state["regulation"]
+        else:
+            st.session_state["regulation"] = get_lname(f"data/{username}/laws.json",folder_path)
+            regulation = st.session_state["regulation"]
     if "show_laws" not in st.session_state:
         st.session_state["show_laws"] = False
     if "regset" not in st.session_state:
@@ -372,7 +376,7 @@ def main():
                     st.session_state["regulation"] = lawname 
                     regulation = lawname
                     resp=f"{query}\n {get_codes_from(lawname,article)}"
-                    st.markdown(resp)
+                    st.markdown(f"{resp}<br>", unsafe_allow_html=True)
                 else:
                     st.write(f"你確定提問正確嗎?😜")
             else:

@@ -103,7 +103,7 @@ def init_router_engine(username,lawname):
     vector_storeR={}
     collection={}
     engines=[]
-    field_dir={"空氣污染相關法規":"air","環評、生態與噪音法規":"eia","土壤、毒性物質與廢棄物相關法規":"soil_waste","水質及水污染相關法規":"water"}
+    field_dir={"空氣污染相關法規":"air","環評、生態與噪音法規":"eia",} #"土壤、毒性物質與廢棄物相關法規":"soil_waste","水質及水污染相關法規":"water"}
     names=field_dir.values()
     descriptions=field_dir.keys()
     for d in names:
@@ -120,6 +120,7 @@ def init_router_engine(username,lawname):
     descriptions=[f"查詢{lawname}完整法條原文",f"查詢{lawname}-法條摘要",f"查詢{lawname}關鍵詞相關資訊",f"查詢{lawname}知識圖譜"]
     tools.extend([QueryEngineTool.from_defaults(engine, name=name, description=description) for engine,name, description in zip(engines,names,descriptions)])
     llm2 = OpenAI(model="gpt-4o-mini", api_key=api_key)
+    #selector = PydanticSingleSelector.from_defaults(llm=llm2)
     selector = PydanticMultiSelector.from_defaults(llm=llm2)
     engine = RouterQueryEngine(
         selector=selector, #LLMSingleSelector.from_defaults(llm=llm),

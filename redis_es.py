@@ -61,8 +61,8 @@ def parse_key(key):
     parts = key.replace('law:','').split(":")
     lawname = parts[0]
     article = parts[2] if len(parts) > 2 else ""
-    clause = parts[3] if len(parts) > 3 else ""
-    item = parts[4] if len(parts) > 4 else ""
+    clause = parts[3].replace('.0','') if len(parts) > 3 else ""
+    item = parts[4].replace('.0','') if len(parts) > 4 else ""
     return lawname, article, clause, item
 
 def display_laws_table(keys,srch_str):
@@ -177,11 +177,12 @@ def extract_sort_keys(s):
     tiao = re.search(r"第(\d+)條", parts[3])  
     tiao_num = int(tiao.group(1)) if tiao else 0  
     kuan_raw = parts[4].replace("、","")  
+    xiang =  int(parts[5].replace('.0',''))
     if parts[4] == "0" and parts[5] == "0" and parts[6] == "0":  
         kuan_num = -1  
     else:  
         kuan_num = chinese_to_num(kuan_raw)  
-    return (tiao_num, kuan_num)  
+    return (tiao_num, xiang, kuan_num)  
 
 def get_codes_from(lawname, article):
     pattern = f"law:{lawname}:*:第*{article}*條:*"
@@ -193,12 +194,12 @@ def get_codes_from(lawname, article):
     if len(keys)>1:
         keys = sorted(keys,key=extract_sort_keys) 
 
-    rows = [f"{lawname}\n "]
+    rows = [f"{lawname}<br>"]
     for key in keys:
         lawname, article, clause, item = parse_key(key)
         code = r.hget(key, "code") or ""
-        rows.extend([article, item, f"條文內容:{code}\n "])
-    return ','.join(rows)
+        rows.extend([article, item, f"條文內容:{code}<br>"])
+    return ''.join(rows)
 
 def extract_law_and_article_from_query(regulation,text, law_list):  
     from cn2an import cn2an
