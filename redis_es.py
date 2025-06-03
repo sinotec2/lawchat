@@ -3,15 +3,34 @@ from redis import Redis
 import ast
 import os
 import re
+import json
 from util_k import copy_to_clipboard_ui
 import pandas as pd
 import jieba
+from redis_srch import open_conn
+from extrat_kw import extract_keywords_from_query, make_pools, select_law, get_lname, get_lnames, laws_dict
 
 if 'r' not in st.session_state:
     redis_key = st.secrets["redis_key"]
     REDIS_HOST=f"default:{redis_key}@172.20.31.1"
     st.session_state.r = Redis.from_url(f"redis://{REDIS_HOST}:6379", db=0, decode_responses=True)
 r = st.session_state.r
+
+abb={"毒性及關注化學物質管理法":"毒管法","土壤及地下水污染整治法":"土污法","空氣污染防制法":"空污法","環境影響評估法":"環評法",'土壤及地下水污染整治法':'土污法',
+     "野生動物保育法":"野保法","廢棄物清理法":"廢清法","水污染防治法":"水污法","噪音管制法":"噪音法","空氣品質":"空品","固定污染源":"固定源",
+     "空氣污染防制費":"空污費","移動污染源":"移動源","土壤及地下水污染整治費":"土污費","水污染防治費":"水污費"}
+abb2={i:j for i,j in abb.items()}
+laws=laws_dict()
+all_laws=get_lnames(laws)
+law_list=all_laws["all"]
+for n,a in abb.items():
+    for i in law_list:
+        if n in i:
+            abb2.update({i:i.replace(n,a)})
+abb3={j:i for i,j in abb2.items()}
+
+with open('json/max_art.json','r') as f:
+    max_art=json.load(f)
 
 def get_laws_by_word(word,reg_set):
     s=set()
@@ -62,7 +81,7 @@ def parse_key(key):
     lawname = parts[0]
     article = parts[2] if len(parts) > 2 else ""
     clause = parts[3].replace('.0','') if len(parts) > 3 else ""
-    item = parts[4].replace('.0','') if len(parts) > 4 else ""
+    item = parts[4].replace('nan','0').replace('.0','') if len(parts) > 4 else ""
     return lawname, article, clause, item
 
 def display_laws_table(keys,srch_str):
@@ -176,46 +195,60 @@ def extract_sort_keys(s):
     parts = s.split(":")  
     tiao = re.search(r"第(\d+)條", parts[3])  
     tiao_num = int(tiao.group(1)) if tiao else 0  
-    kuan_raw = parts[4].replace("、","")  
-    xiang =  int(parts[5].replace('.0',''))
+    kuan_raw = parts[4].replace('nan','0').replace("、","")  
+    xiang =  int(parts[5].replace('nan','0').replace('.0',''))
+    mu_raw = parts[6].replace('nan','0').replace("（","").replace("(","").replace("）","").replace(")","")
     if parts[4] == "0" and parts[5] == "0" and parts[6] == "0":  
-        kuan_num = -1  
+        kuan_num = -1 
+        mu_num = -1
     else:  
         kuan_num = chinese_to_num(kuan_raw)  
-    return (tiao_num, xiang, kuan_num)  
+        mu_num = chinese_to_num(mu_raw)  
+    return (tiao_num, xiang, kuan_num,mu_num)  
 
 def get_codes_from(lawname, article):
+    if int(article) >  max_art[lawname]: 
+        return f"找不到第{article}條，請再確認。"
+
+    r = open_conn()
+
     pattern = f"law:{lawname}:*:第*{article}*條:*"
-    regex = re.compile(r'第\s*7\s*條')  
     keys = list(r.scan_iter(pattern))
+    if len(keys)==0:
+        return f"找不到第{article}條，請再確認。"
+    regex = re.compile(rf'第\s*{article}\s*條(?!\d)') 
     keys = [i for i in keys if regex.search(i)]
     if len(keys)==0:
         return f"找不到第{article}條，請再確認。"
-    if len(keys)>1:
+    else:
         keys = sorted(keys,key=extract_sort_keys) 
 
     rows = [f"{lawname}<br>"]
     for key in keys:
         lawname, article, clause, item = parse_key(key)
         code = r.hget(key, "code") or ""
-        rows.extend([article, item, f"條文內容:{code}<br>"])
+        rows.extend([article, f"第{item}項 ", f"條文內容:{code}<br>"])
     return ''.join(rows)
 
 def extract_law_and_article_from_query(regulation,text, law_list):  
     from cn2an import cn2an
     # 直接比對法規名稱  
     s=set(['品質標準','辦法',"法","規則","細則","標準","準則","規程"])
-    if regulation in text:
+    if regulation in text and len(set(jieba.lcut(text))-s-set(jieba.lcut(regulation))) == 0:
         found_law = regulation
     else:
         found_law = None  
         if len(set(jieba.lcut(text))-s) == 0 :
             found_law = regulation    
         else:
-            for law in law_list:  
-                if law in text:  
-                    found_law = law  
-                    break  
+            for law in sorted(law_list+list(abb2.values()), key=len, reverse=True): 
+                if law in text:
+                    if law in law_list:
+                        found_law = law  
+                    else:
+                        if abb3[law] in law_list:
+                            found_law = abb3[law]  
+                    if found_law:break  
     # 條號使用正則 ，如[第3條]、[第十五條]  
     article_match = re.search(r'第\s*[\d一二三四五六七八九十百零]+\s*條', text)
     article = str(int(cn2an(article_match.group(0).replace('第','').replace('條','').replace(' ',''),'smart'))) if article_match else None  
