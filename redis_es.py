@@ -2,6 +2,7 @@ import streamlit as st
 from redis import Redis
 import ast
 import os
+import re
 from util_k import copy_to_clipboard_ui
 import pandas as pd
 import jieba
@@ -61,7 +62,8 @@ def parse_key(key):
     lawname = parts[0]
     article = parts[2] if len(parts) > 2 else ""
     clause = parts[3] if len(parts) > 3 else ""
-    return lawname, article, clause
+    item = parts[4] if len(parts) > 4 else ""
+    return lawname, article, clause, item
 
 def display_laws_table(keys,srch_str):
 
@@ -72,7 +74,7 @@ def display_laws_table(keys,srch_str):
     i=1
     rows = []
     for key in keys:
-        lawname, article, clause = parse_key(key)
+        lawname, article, clause, item = parse_key(key)
         code = r.hget(key, "code") or ""
         rows.append({
             "no":i,
@@ -136,7 +138,7 @@ def get_all_keywords(fname):
 
 def display_laws_table_with_buttons(keys):
     for idx, key in enumerate(keys):
-        lawname, article, clause = parse_key(key)
+        lawname, article, clause, item = parse_key(key)
         code = r.hget(key, "code") or ""
 
         cols = st.columns([2, 2, 2, 6])  # 欄位分配
@@ -153,5 +155,67 @@ def display_laws_table_with_buttons(keys):
                 st.session_state["regulation"] = lawname
                 st.success(f"已選擇法規：{lawname}")
 
+def chinese_to_num(chinese):  
+    chi_num = {'零':0, '一':1, '二':2, '三':3, '四':4, '五':5, '六':6, '七':7, '八':8, '九':9}  
+    if not chinese:  
+        return 0  
+    result = 0  
+    if '十' in chinese:  
+        parts = chinese.split('十')  
+        if parts[0] == '':  
+            result += 10  
+        else:  
+            result += chi_num[parts[0]] * 10  
+        if len(parts) > 1 and parts[1]:  
+            result += chi_num[parts[1]]  
+    else:  
+        result = chi_num.get(chinese, 0)  
+    return result  
 
-    
+def extract_sort_keys(s):  
+    parts = s.split(":")  
+    tiao = re.search(r"第(\d+)條", parts[3])  
+    tiao_num = int(tiao.group(1)) if tiao else 0  
+    kuan_raw = parts[4].replace("、","")  
+    if parts[4] == "0" and parts[5] == "0" and parts[6] == "0":  
+        kuan_num = -1  
+    else:  
+        kuan_num = chinese_to_num(kuan_raw)  
+    return (tiao_num, kuan_num)  
+
+def get_codes_from(lawname, article):
+    pattern = f"law:{lawname}:*:第*{article}*條:*"
+    regex = re.compile(r'第\s*7\s*條')  
+    keys = list(r.scan_iter(pattern))
+    keys = [i for i in keys if regex.search(i)]
+    if len(keys)==0:
+        return f"找不到第{article}條，請再確認。"
+    if len(keys)>1:
+        keys = sorted(keys,key=extract_sort_keys) 
+
+    rows = [f"{lawname}\n "]
+    for key in keys:
+        lawname, article, clause, item = parse_key(key)
+        code = r.hget(key, "code") or ""
+        rows.extend([article, item, f"條文內容:{code}\n "])
+    return ','.join(rows)
+
+def extract_law_and_article_from_query(regulation,text, law_list):  
+    from cn2an import cn2an
+    # 直接比對法規名稱  
+    s=set(['品質標準','辦法',"法","規則","細則","標準","準則","規程"])
+    if regulation in text:
+        found_law = regulation
+    else:
+        found_law = None  
+        if len(set(jieba.lcut(text))-s) == 0 :
+            found_law = regulation    
+        else:
+            for law in law_list:  
+                if law in text:  
+                    found_law = law  
+                    break  
+    # 條號使用正則 ，如[第3條]、[第十五條]  
+    article_match = re.search(r'第\s*[\d一二三四五六七八九十百零]+\s*條', text)
+    article = str(int(cn2an(article_match.group(0).replace('第','').replace('條','').replace(' ',''),'smart'))) if article_match else None  
+    return found_law, article

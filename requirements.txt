@@ -1,4 +1,5 @@
 asyncpg==0.30.0
+cn2an==0.5.23
 hiredis==3.1.0
 jieba==0.42.1
 ldap3==2.9.1

@@ -4,12 +4,13 @@ from router_engine import init_router_engine
 from extrat_kw import extract_keywords_from_query, make_pools, select_law, get_lname, get_lnames, laws_dict, get_mom, \
 	 reverse_lookup, reverse_lookupV
 from redis_es import get_all_keywords, get_laws_by_keyword, get_keywords_from_laws, get_laws_by_keywords, display_laws_table,\
-         get_laws_by_word
+         get_laws_by_word, extract_law_and_article_from_query, get_codes_from
 from util_k import copy_to_clipboard_ui, get_latest_username_cookie
 from redis_srch import  create_law_index_if_not_exists, code_retrieval
 import json
 import ast
 import os
+import re
 import subprocess
 from datetime import datetime
 from collections import defaultdict
@@ -364,9 +365,20 @@ def main():
     """
     if query:
         with st.spinner("查詢中..."):
-            st.markdown("### 回覆內容")
-            resp = router_engine.query(query)
-            st.write(resp.response)
+            lawname,article=extract_law_and_article_from_query(regulation,query,all_laws["all"])            
+            if article:
+                st.markdown("### 回覆內容")
+                if lawname:
+                    st.session_state["regulation"] = lawname 
+                    regulation = lawname
+                    resp=f"{query}\n {get_codes_from(lawname,article)}"
+                    st.markdown(resp)
+                else:
+                    st.write(f"你確定提問正確嗎?😜")
+            else:
+                resp = router_engine.query(query)
+                st.markdown("### 回覆內容")
+                st.write(resp.response)
 
 if __name__ == '__main__':
     main()
