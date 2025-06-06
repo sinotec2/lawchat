@@ -57,8 +57,8 @@ def init_router_engine(username,lawname):
     from qdrant_client import QdrantClient, AsyncQdrantClient
     from llama_index.vector_stores.qdrant import QdrantVectorStore
 
-    client = QdrantClient(host="qdrant", port=6333)
-    aclient = AsyncQdrantClient(host="qdrant", port=6333)
+    client = QdrantClient(host="172.20.31.1", port=6333)
+    aclient = AsyncQdrantClient(host="172.20.31.1", port=6333)
 
     targets=["laws","summaries","keywords","graph"] 
     sources={i:i for i in targets[:3]}
