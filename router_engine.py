@@ -46,8 +46,6 @@ def init_router_engine(username,lawname):
     import streamlit as st
 
     from llama_index.packs.raptor import RaptorPack
-    from llama_index.vector_stores.chroma import ChromaVectorStore
-    import chromadb
     import nest_asyncio
     nest_asyncio.apply()
     from llama_index.llms.openai import OpenAI
@@ -56,6 +54,11 @@ def init_router_engine(username,lawname):
         PydanticSingleSelector,
     )
 
+    from qdrant_client import QdrantClient, AsyncQdrantClient
+    from llama_index.vector_stores.qdrant import QdrantVectorStore
+
+    client = QdrantClient(host="localhost", port=6333)
+    aclient = AsyncQdrantClient(host="localhost", port=6333)
 
     targets=["laws","summaries","keywords","graph"] 
     sources={i:i for i in targets[:3]}
@@ -101,14 +104,12 @@ def init_router_engine(username,lawname):
                 index = PropertyGraphIndex.from_documents(docs,llm=llm,embed_kg_nodes=False,kg_extractors=[kg_extractor], storage_context=storage_context,show_progress=True,)
             indices.append(index)
     vector_storeR={}
-    collection={}
     engines=[]
-    field_dir={"空氣污染相關法規":"air","環評、生態與噪音法規":"eia",} #"土壤、毒性物質與廢棄物相關法規":"soil_waste","水質及水污染相關法規":"water"}
+    field_dir={"空氣污染相關法規":"air","環評、生態與噪音法規":"eia", "水質及水污染相關法規":"water","土壤、毒性物質與廢棄物相關法規":"sw",}
     names=field_dir.values()
     descriptions=field_dir.keys()
     for d in names:
-        collection.update({d:chromadb.PersistentClient(path=f"data/raptor_dbs/{d}").get_or_create_collection("raptor")})
-        vector_storeR.update({d:ChromaVectorStore(chroma_collection=collection[d])})
+        vector_storeR.update({d: QdrantVectorStore( client=client, aclient=aclient, collection_name=f"{d}_raptor")})
         engines.append(RetrieverQueryEngine.from_args(RaptorPack([],vector_store=vector_storeR[d],llm=llm,embed_model=embed_model).retriever,llm=llm))
     tools = [QueryEngineTool(
              query_engine=engine, 
@@ -116,12 +117,12 @@ def init_router_engine(username,lawname):
                  name=name, 
                  description=description)
               ) for engine,name, description in zip(engines, names, descriptions)]
-    engines=[index.as_query_engine(similarity_top_k=3) for index in indices]
+    engines=[index.as_query_engine(similarity_top_k=2) for index in indices]
     descriptions=[f"查詢{lawname}完整法條原文",f"查詢{lawname}-法條摘要",f"查詢{lawname}關鍵詞相關資訊",f"查詢{lawname}知識圖譜"]
     tools.extend([QueryEngineTool.from_defaults(engine, name=name, description=description) for engine,name, description in zip(engines,names,descriptions)])
     llm2 = OpenAI(model="gpt-4o-mini", api_key=api_key)
-    #selector = PydanticSingleSelector.from_defaults(llm=llm2)
-    selector = PydanticMultiSelector.from_defaults(llm=llm2)
+    #selector = PydanticMultiSelector.from_defaults(llm=llm2)
+    selector = PydanticSingleSelector.from_defaults(llm=llm2)
     engine = RouterQueryEngine(
         selector=selector, #LLMSingleSelector.from_defaults(llm=llm),
         query_engine_tools=tools,

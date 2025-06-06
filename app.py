@@ -247,7 +247,7 @@ def main():
                 field, main_category, sub_categor=reverse_lookup(regulation)
             else:
                 st.markdown(f"你確定有法規名稱包含**{dir_selected}**😜")            
-    dir_mods= [ "全文搜尋", "關鍵字搜尋", ]# "模糊篩選" ,
+    dir_mods= [ "全文搜尋", "關鍵字搜尋", "法規名(簡)稱+條號"]# "模糊篩選" ,
     st.markdown('#### 🎣直接搜尋條文')
     mode = st.radio(label="",  options=dir_mods, horizontal=True)
     if mode == "全文搜尋":
@@ -294,6 +294,22 @@ def main():
             kw=kw1
             if kw2:kw=kw1+kw2
             display_laws_table(results,kw)
+    elif mode == "法規名(簡)稱+條號":
+        queryNA = st.text_input(f"輸入法規名稱或簡稱+條號(如不輸入名稱將顯示 {regulation})😊")
+        if queryNA:
+            lawname,article=extract_law_and_article_from_query(regulation,queryNA,all_laws["all"])            
+            if article:
+                st.markdown("### 條文內容")
+                if lawname:
+                    st.session_state["regulation"] = lawname 
+                    regulation = lawname
+                    resp=f"{get_codes_from(lawname,article)}"
+                    st.markdown(f"{resp}<br>", unsafe_allow_html=True)
+                else:
+                    resp=f"{get_codes_from(regulation,article)}"
+                    st.markdown(f"{resp}<br>", unsafe_allow_html=True)
+                st.write(f"你確定提問正確嗎?😜")
+
     pass_txt="""
     elif mode == "模糊篩選":
         query = st.text_input(f"請輸入主題😊")
@@ -369,20 +385,21 @@ def main():
     """
     if query:
         with st.spinner("查詢中..."):
-            lawname,article=extract_law_and_article_from_query(regulation,query,all_laws["all"])            
-            if article:
-                st.markdown("### 回覆內容")
-                if lawname:
-                    st.session_state["regulation"] = lawname 
-                    regulation = lawname
-                    resp=f"{query}\n {get_codes_from(lawname,article)}"
-                    st.markdown(f"{resp}<br>", unsafe_allow_html=True)
-                else:
-                    st.write(f"你確定提問正確嗎?😜")
-            else:
-                resp = router_engine.query(query)
-                st.markdown("### 回覆內容")
-                st.write(resp.response)
+            resp = router_engine.query(query)
+            st.markdown("### 回覆內容")
+            st.write(resp.response)
+            try:
+                n=resp.metadata["selector_result"].selections[0].index
+                if len(resp.source_nodes)<n+1:n=0
+                lawname,article=(resp.source_nodes[n].metadata[k] for k in ['LawName', 'article'])
+                article=int(article.replace('第','').replace('條',''))
+                st.markdown(f"ref:{get_codes_from(lawname,article)}", unsafe_allow_html=True)
+                st.session_state["regulation"] = lawname 
+                regulation = lawname
+            except:
+                st.markdown(f"無進一步參考<br>")
+                
+
 
 if __name__ == '__main__':
     main()
