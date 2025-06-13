@@ -2,7 +2,7 @@ import streamlit as st
 from streamlit_searchbox import st_searchbox
 from router_engine import init_router_engine
 from extrat_kw import extract_keywords_from_query, make_pools, select_law, get_lname, get_lnames, laws_dict, get_mom, \
-	 reverse_lookup, reverse_lookupV
+	 reverse_lookup, reverse_lookupV, fields_dict, selector_raptor, raptor_dicts
 from redis_es import get_all_keywords, get_laws_by_keyword, get_keywords_from_laws, get_laws_by_keywords, display_laws_table,\
          get_laws_by_word, extract_law_and_article_from_query, get_codes_from
 from util_k import copy_to_clipboard_ui, get_latest_username_cookie
@@ -14,6 +14,32 @@ import re
 import subprocess
 from datetime import datetime
 from collections import defaultdict
+
+from opencc import OpenCC
+cc = OpenCC('s2t')
+
+def spin_ans(raptor,regulation,router_engine,query):
+    from extrat_kw import raptor_dicts
+    raptor_fields=raptor_dicts()[1]
+    with st.spinner(f"為您查詢{raptor_fields[raptor]}_{regulation}..."):
+        resp = router_engine.query(query)
+        st.markdown("### 回覆內容")
+        st.write(cc.convert(resp.response))
+        try:
+            n=resp.metadata["selector_result"].selections[0].index                
+            if len(resp.source_nodes)<n+1:n=0
+            #scores=[i.score for i in resp.source_nodes]
+            #maxn=scores.index(max(scores))
+            #if n!=maxn:n=maxn
+            lawname,article=(resp.source_nodes[n].metadata[k] for k in ['LawName', 'article'])
+            article=int(article.replace('第','').replace('條',''))
+            st.markdown(f"ref:{get_codes_from(lawname,article)}", unsafe_allow_html=True)
+            st.session_state["regulation"] = lawname 
+            regulation = lawname
+            return regulation
+        except:
+            st.markdown(f"無進一步參考<br>")
+            return False
 
 def search_law(query: str):
     # 這裡是模擬篩選邏輯，可以很靈活自訂
@@ -104,12 +130,17 @@ def define_fields(tag):
 
 def toggle_laws():
     st.session_state["show_laws"] = not st.session_state["show_laws"]
+def switch_raptor(raptor):
+    st.session_state["going"] = False 
 
 def main():
     results=None
     folder_path="./json/"
     metadata_pool,keyword_pool=make_pools(folder_path)
     laws=laws_dict()
+    law_field=fields_dict()
+    raptor_fields=raptor_dicts()[1]
+ 
     mom=[i.strip().replace('\n','') for i in get_mom()]
     if "username" not in st.session_state:
         st.session_state["username"] = False
@@ -141,14 +172,24 @@ def main():
         st.session_state["keywords_data"]=False
     if "his_selected" not in st.session_state:
         st.session_state["his_selected"]=False
+    if "going" not in st.session_state:
+        st.session_state["going"]=True
 
 
     # 根據狀態決定按鈕顯示文字
     button_label_laws = "📖 展開條文" if not st.session_state["show_laws"] else "❌ 收起條文"
 
     regulation=st.session_state["regulation"]
+    field_dir={"all":"json","所有領域":"json","空污相關法規":"air","環評、生態與噪音法規":"eia",
+	"土壤與毒性物質相關法規":"soil","廢棄物相關法規":"waste","水污染相關法規":"water",
+	"採購與契約相關法規":"proc",
+	}
+    dir_raptor={i:i for i in field_dir.values()}
+    dir_raptor.update({"waste":'sw',"soil":'sw'})
+    if "raptor" not in st.session_state:
+        raptor=dir_raptor[field_dir[law_field[regulation]]]
+        st.session_state["raptor"] = raptor 
 
-    field_dir={"all":"json","所有領域":"json","空污相關法規":"air","環評、生態與噪音法規":"eia","土壤與毒性物質相關法規":"soil","廢棄物相關法規":"waste","水污染相關法規":"water"}
     field, main_category, sub_categor=reverse_lookup(regulation)
     fname=f"./json/all_keywords_{field_dir[field]}.txt"
     all_keywords=get_all_keywords(fname)
@@ -197,6 +238,7 @@ def main():
                 lst=laws_field[main_category][sub_category]
                 min_k=min(k,len(lst)-1)
                 st.session_state["regulation"] = st.selectbox("子類別下之法規", lst,index=min_k)
+                regulation = st.session_state["regulation"]
     elif mode == "名稱搜尋":
         if st.session_state["regulation"] or regulation:
             if st.session_state["regulation"]:
@@ -333,6 +375,11 @@ def main():
         regulation=st.session_state["regulation"]
         with open(os.path.join(folder_path, f"{regulation}.json"), 'r', encoding='utf-8') as f:
             data = json.load(f)
+            dash_in_keys=[i for i in list(data["codes"].keys()) if '-' in i]            
+            if "範本" in regulation or len(dash_in_keys)>0: 
+                ds=list(data["codes"].keys())
+            else:
+                ds=[f"第 {i+1} 條" for i in range(len(data["codes"]))]
         with st.sidebar:
             if username:
                 greeting,timestamp=now_on()
@@ -354,15 +401,19 @@ def main():
             # 根據狀態顯示條文內容
             if st.session_state["show_laws"]:
                 for i in range(len(data["codes"])):
-                    d=f"第 {i+1} 條"
-                    if d not in data["codes"].keys(): continue
-                    st.sidebar.write(f"**{d}**",data["codes"][d])
+                    d=ds[i]
+                    if d not in data["codes"].keys(): 
+                        st.write(d)
+                        continue
+                    st.sidebar.markdown(f"**{d}**{data['codes'][d]}", unsafe_allow_html=True)
                     if "tables" in data.keys():
                         if d in  data["tables"].keys():
                             tabstr=data["tables"][d].replace('||','|\n|')
                             st.sidebar.markdown(tabstr, unsafe_allow_html=True)
         result=select_law(folder_path,regulation,username)            
-        router_engine = init_router_engine(username,regulation)
+        raptor=dir_raptor[field_dir[law_field[regulation]]]
+        st.session_state["raptor"] = raptor
+        router_engine = init_router_engine(username,regulation,raptor)
 
     f="""
     if st.checkbox("啟用 Metadata 精準篩選"):
@@ -384,21 +435,39 @@ def main():
     else:
     """
     if query:
-        with st.spinner("查詢中..."):
-            resp = router_engine.query(query)
-            st.markdown("### 回覆內容")
-            st.write(resp.response)
-            try:
-                n=resp.metadata["selector_result"].selections[0].index
-                if len(resp.source_nodes)<n+1:n=0
-                lawname,article=(resp.source_nodes[n].metadata[k] for k in ['LawName', 'article'])
-                article=int(article.replace('第','').replace('條',''))
-                st.markdown(f"ref:{get_codes_from(lawname,article)}", unsafe_allow_html=True)
-                st.session_state["regulation"] = lawname 
+        st.session_state["going"]=True
+        st.session_state["raptor"] = dir_raptor[field_dir[law_field[regulation]]]
+        lawname,article=extract_law_and_article_from_query(regulation,query,all_laws["all"])            
+        if lawname:
+            if lawname != regulation:
                 regulation = lawname
-            except:
-                st.markdown(f"無進一步參考<br>")
-                
+                st.session_state["regulation"]=regulation
+                raptor=dir_raptor[field_dir[law_field[regulation]]]
+                st.session_state["raptor"]=raptor
+                router_engine = init_router_engine(username,regulation,raptor)
+            st.session_state["going"]=True
+        else:
+            raptor = selector_raptor(query)
+            if raptor and raptor in raptor_fields.keys():
+                if raptor != st.session_state["raptor"]:
+                    st.session_state["going"]=False
+                    button_switch_raptor = f"AI猜測您要切換到新領域:{raptor_fields[raptor]}，確定嗎?或修改一下提問!😜" 
+                    if st.button(button_switch_raptor, on_click=switch_raptor(raptor)):
+                        regulation=None
+                        router_engine = init_router_engine(username,regulation,raptor)
+                        regulation=spin_ans(raptor,regulation,router_engine,query)
+                        st.session_state["raptor"]=raptor
+                        st.session_state["regulation"]=regulation
+                        return
+            else:
+                raptor = st.session_state["raptor"]
+                regulation = st.session_state["regulation"]
+                router_engine = init_router_engine(username,regulation,raptor)
+                st.session_state["going"]=True
+
+        if st.session_state["going"]:
+            result=spin_ans(raptor,regulation,router_engine,query)
+        return
 
 
 if __name__ == '__main__':

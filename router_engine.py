@@ -31,7 +31,7 @@ embed_model = OllamaEmbedding(
         base_url="http://172.20.31.7:55083/",)
 Settings.embed_model = embed_model
 
-def init_router_engine(username,lawname):
+def init_router_engine(username,lawname,raptor):
     from llama_index.core import Document, PropertyGraphIndex
     from llama_index.core.indices.property_graph import DynamicLLMPathExtractor
     from llama_index.vector_stores.redis import RedisVectorStore
@@ -42,6 +42,7 @@ def init_router_engine(username,lawname):
     from llama_index.core import StorageContext
     from redisvl.schema import IndexSchema
     from redis_srch import open_conn
+    from extrat_kw import raptor_dicts
     from index_builder import load_documents
     import streamlit as st
 
@@ -78,48 +79,51 @@ def init_router_engine(username,lawname):
          allowed_entity_props=[],
      )
 
-    indices=[]
-    for t,s in sources.items():
-        pattern = f"{lawname}-{t}*"
-        yaml=f'data/{username}/envlaws-{t}.yaml'
-        res=wrt_yaml(yaml,f"{lawname}-{t}")
-        keys = yaml #list(r.scan_iter(pattern))
-        if len(keys)>3 :
-            vector_store = RedisVectorStore(schema=IndexSchema.from_yaml(yaml),redis_client=r, overwrite=False)
-            indices.append(VectorStoreIndex.from_vector_store(vector_store))
-        else:
-            vector_store = RedisVectorStore(schema=IndexSchema.from_yaml(yaml),redis_client=r, overwrite=True)
-            namespace=f"{lawname}-{t}"
-            storage_context = StorageContext.from_defaults(
-                docstore=RedisDocumentStore.from_host_and_port(
-                    host=REDIS_HOST, port=REDIS_PORT, namespace=namespace),
-                index_store=RedisIndexStore.from_host_and_port(
-                    host=REDIS_HOST, port=REDIS_PORT, namespace=namespace),
-                vector_store=vector_store,)
-            fname=f"data/{username}/{s}.json"    
-            docs = load_documents(fname)
-            if t in targets[:3]:
-                index = VectorStoreIndex.from_documents(docs, storage_context=storage_context)
-            elif t=='graph':
-                index = PropertyGraphIndex.from_documents(docs,llm=llm,embed_kg_nodes=False,kg_extractors=[kg_extractor], storage_context=storage_context,show_progress=True,)
-            indices.append(index)
-    vector_storeR={}
-    engines=[]
-    field_dir={"空氣污染相關法規":"air","環評、生態與噪音法規":"eia", "水質及水污染相關法規":"water","土壤、毒性物質與廢棄物相關法規":"sw",}
-    names=field_dir.values()
-    descriptions=field_dir.keys()
-    for d in names:
-        vector_storeR.update({d: QdrantVectorStore( client=client, aclient=aclient, collection_name=f"{d}_raptor")})
-        engines.append(RetrieverQueryEngine.from_args(RaptorPack([],vector_store=vector_storeR[d],llm=llm,embed_model=embed_model).retriever,llm=llm))
-    tools = [QueryEngineTool(
-             query_engine=engine, 
-             metadata=ToolMetadata(
-                 name=name, 
-                 description=description)
-              ) for engine,name, description in zip(engines, names, descriptions)]
-    engines=[index.as_query_engine(similarity_top_k=2) for index in indices]
-    descriptions=[f"查詢{lawname}完整法條原文",f"查詢{lawname}-法條摘要",f"查詢{lawname}關鍵詞相關資訊",f"查詢{lawname}知識圖譜"]
-    tools.extend([QueryEngineTool.from_defaults(engine, name=name, description=description) for engine,name, description in zip(engines,names,descriptions)])
+    field_raptor=raptor_dicts()[0]
+    names=field_raptor.values()
+    tools = []
+    if raptor in names: 
+        vector_storeR={}
+        engines=[]
+        descriptions=field_raptor.keys()
+        for d in names:
+            if d != raptor:continue
+            vector_storeR.update({d: QdrantVectorStore( client=client, aclient=aclient, collection_name=f"{d}_raptor")})
+            engines.append(RetrieverQueryEngine.from_args(RaptorPack([],vector_store=vector_storeR[d],llm=llm,embed_model=embed_model).retriever,llm=llm))
+        tools.extend([QueryEngineTool( query_engine=engine, metadata=ToolMetadata( name=name, description=description)
+                  ) for engine,name, description in zip(engines, names, descriptions)])
+    if lawname:
+        indices=[]
+        for t,s in sources.items():
+            pattern = f"{lawname}-{t}*"
+            yaml=f'data/{username}/envlaws-{t}.yaml'
+            res=wrt_yaml(yaml,f"{lawname}-{t}")
+            keys = yaml #list(r.scan_iter(pattern))
+            if len(keys)>3 :
+                vector_store = RedisVectorStore(schema=IndexSchema.from_yaml(yaml),redis_client=r, overwrite=False)
+                indices.append(VectorStoreIndex.from_vector_store(vector_store))
+            else:
+                vector_store = RedisVectorStore(schema=IndexSchema.from_yaml(yaml),redis_client=r, overwrite=True)
+                namespace=f"{lawname}-{t}"
+                storage_context = StorageContext.from_defaults(
+                    docstore=RedisDocumentStore.from_host_and_port(
+                        host=REDIS_HOST, port=REDIS_PORT, namespace=namespace),
+                    index_store=RedisIndexStore.from_host_and_port(
+                        host=REDIS_HOST, port=REDIS_PORT, namespace=namespace),
+                    vector_store=vector_store,)
+                fname=f"data/{username}/{s}.json"    
+                docs = load_documents(fname)
+                if t in targets[:3]:
+                    index = VectorStoreIndex.from_documents(docs, storage_context=storage_context)
+                elif t=='graph':
+                    index = PropertyGraphIndex.from_documents(
+			docs,llm=llm,embed_kg_nodes=False,kg_extractors=[kg_extractor], storage_context=storage_context,show_progress=True,)
+                indices.append(index)
+        engines=[index.as_query_engine(similarity_top_k=2) for index in indices]
+        descriptions=[f"查詢{lawname}完整法條原文",f"查詢{lawname}-法條摘要",f"查詢{lawname}關鍵詞相關資訊",f"查詢{lawname}知識圖譜"]
+        names=descriptions[:]
+        tools.extend([QueryEngineTool.from_defaults(engine, name=name, description=description) for engine,name, description in zip(engines,names,descriptions)])
+
     llm2 = OpenAI(model="gpt-4o-mini", api_key=api_key)
     #selector = PydanticMultiSelector.from_defaults(llm=llm2)
     selector = PydanticSingleSelector.from_defaults(llm=llm2)

@@ -10,6 +10,9 @@ import jieba
 from redis_srch import open_conn
 from extrat_kw import extract_keywords_from_query, make_pools, select_law, get_lname, get_lnames, laws_dict
 
+from opencc import OpenCC
+cc = OpenCC('s2t')
+
 if 'r' not in st.session_state:
     redis_key = st.secrets["redis_key"]
     REDIS_HOST=f"default:{redis_key}@172.20.31.1"
@@ -18,7 +21,9 @@ r = st.session_state.r
 
 abb={"毒性及關注化學物質管理法":"毒管法","土壤及地下水污染整治法":"土污法","空氣污染防制法":"空污法","環境影響評估法":"環評法",'土壤及地下水污染整治法':'土污法',
      "野生動物保育法":"野保法","廢棄物清理法":"廢清法","水污染防治法":"水污法","噪音管制法":"噪音法","空氣品質":"空品","固定污染源":"固定源",
-     "空氣污染防制費":"空污費","移動污染源":"移動源","土壤及地下水污染整治費":"土污費","水污染防治費":"水污費"}
+     "空氣污染防制費":"空污費","移動污染源":"移動源","土壤及地下水污染整治費":"土污費","水污染防治費":"水污費",
+     "政府採購法":"採購法","政府採購公告及公報發行辦法":"採購公報","採購申訴審議規則":"申訴規則",
+	}
 abb2={i:j for i,j in abb.items()}
 laws=laws_dict()
 all_laws=get_lnames(laws)
@@ -211,17 +216,22 @@ def get_codes_from(lawname, article):
         return f"找不到第{article}條，請再確認。"
 
     r = open_conn()
-
-    pattern = f"law:{lawname}:*:第*{article}*條:*"
+    
+    if '範本' in lawname :
+        pattern = f"law:{lawname}:*:{article}:*"
+    else:
+        pattern = f"law:{lawname}:*:第*{article}*條:*"
     keys = list(r.scan_iter(pattern))
     if len(keys)==0:
         return f"找不到第{article}條，請再確認。"
-    regex = re.compile(rf'第\s*{article}\s*條(?!\d)') 
+    if '範本'  in lawname :
+        regex = re.compile(rf"law:{lawname}:(.*?):{article}:*") 
+    else:
+        regex = re.compile(rf'第\s*{article}\s*條(?!\d)') 
     keys = [i for i in keys if regex.search(i)]
     if len(keys)==0:
         return f"找不到第{article}條，請再確認。"
-    else:
-        keys = sorted(keys,key=extract_sort_keys) 
+    keys = sorted(keys,key=extract_sort_keys) 
 
     rows = [f"{lawname}<br>"]
     for key in keys:
@@ -234,7 +244,10 @@ def extract_law_and_article_from_query(regulation,text, law_list):
     from cn2an import cn2an
     # 直接比對法規名稱  
     s=set(['品質標準','辦法',"法","規則","細則","標準","準則","規程"])
-    if regulation in text and len(set(jieba.lcut(text))-s-set(jieba.lcut(regulation))) == 0:
+    selves="本法 這個法 本標準 這個條例".split()
+    b1=regulation in text and len(set(jieba.lcut(text))-s-set(jieba.lcut(regulation))) == 0
+    b2=any(k in text for k in selves) 
+    if b1 or b2:
         found_law = regulation
     else:
         found_law = None  

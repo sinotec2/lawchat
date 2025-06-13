@@ -140,8 +140,10 @@ def select_law(fixed_path,lawname,username):
         att=""
         if '附件' in df.iloc[i,4] or '附表' in df.iloc[i,4]:att=atts
         vals=[str(k) for k in list(df.iloc[i,[0,5,1,2,3]])+[att]+[lawname]]
-        art=' '.join(list(df.article[i]))
         codei=f"{df.iloc[i,4]}"
+        art=str(df.article[i])
+        if '第' in art and '條' in art:
+            art=art.replace(' ','')
         if "tables" in data and art in data["tables"]:
             codei+=data["tables"][art]
         code.append({"text":codei,"metadata":{k:v for k,v in zip(keys,vals)}})
@@ -613,10 +615,84 @@ def laws_dict():
             ]  
         }  
     }})      
+    laws.update({"採購與契約相關法規": {  
+        "政府採購法規": {  
+            "採購相關法案": [
+                "政府採購法",
+                "政府採購法施行細則",
+                "政府採購公告及公報發行辦法",
+                "採購文件保存作業準則",
+                "採購人員倫理準則",
+            ],  
+            "採購作業與程序辦法": [
+                "中央機關未達公告金額採購招標辦法",
+                "中央機關未達公告金額採購監辦辦法",
+                "機關採購工作及審查小組設置及作業辦法",
+                "採購評選委員會組織準則",
+                "採購評選委員會審議規則",
+                "電子採購作業辦法",
+                "機關主會計及有關單位會同監辦採購辦法",
+            ],  
+            "特殊類型採購": [
+                "古蹟歷史建築紀念建築及聚落建築群修復或再利用採購辦法",
+                "九二一地震災區歷史建築修復工程採購辦法",
+                "考古遺址調查研究發掘採購辦法",
+                "文化藝術採購辦法",
+                "法人或團體接受機關補助辦理藝文採購監督管理辦法",
+                "科學技術研究發展採購監督管理辦法",
+                "特別採購招標決標處理辦法",
+                "國外採購財物辦法",
+            ],  
+            "機關採購策略與對象優先辦法":[
+                "扶助中小企業參與政府採購辦法",
+                "經濟部創新產品或服務優先採購辦法",
+                "機關優先採購環境保護產品辦法",
+                "優先採購身心障礙福利機構團體或庇護工場生產物品及服務辦法",
+                "機關指定地區採購房地產作業辦法",
+                "外國廠商參與非條約協定採購處理辦法",
+                "機關辦理涉及國家安全採購之廠商資格限制條件及審查作業辦法",
+            ],  
+           "申訴、調解、稽核與委員會規範_爭議與監督制度":[
+               "採購申訴審議收費辦法",
+               "採購申訴審議委員會組織準則",
+               "採購申訴審議規則",
+               "採購履約爭議調解收費辦法",
+               "採購履約爭議調解規則",
+               "採購履約爭議調解暨收費規則",
+               "採購稽核小組作業規則",
+               "採購稽核小組組織準則",
+               "採購專業人員資格考試訓練發證及管理辦法",
+            ],
+            "國防與軍事相關採購法案": [
+                "新式戰機採購特別條例",
+                "海空戰力提升計畫採購特別條例",
+                "執行海空戰力提升計畫一定金額以上採購辦法",
+                "軍事機關軍品採購辦法",
+                "志願役退除役軍人法人或團體優先承包國防部特殊軍事安全或技術勞務採購處理辦法",
+                "特殊軍事採購適用範圍及處理辦法",
+            ],  
+            "自由貿易港區與租稅優惠相關辦法":[
+                "營利事業於自由貿易港區從事貨物採購輸入儲存或運送免徵營利事業所得稅辦法",
+                "營利事業於國際機場園區內之自由貿易港區從事貨物採購輸入儲存或運送免徵營利事業所得稅辦法",
+            ],  
+        },  
+        "採購相關標準規範": {
+            "公共工程委員會標準規範": [
+                "投標須知範本",  
+            ],  
+        }
+    }})      
 
     return laws
 
-
+def fields_dict():
+    laws=laws_dict()
+    law_field={}
+    for f in laws.keys():
+        for m in laws[f].keys():
+            for s in laws[f][m].keys():
+                law_field.update({i:f for i in laws[f][m][s]})
+    return law_field
 def get_mom():
     mom=f"""
     '空氣污染防制法',
@@ -675,3 +751,63 @@ def reverse_lookupV(regulation_name):
 def search_keyword(query: str, keyword_data:list):
     # 這裡是模擬篩選邏輯，可以很靈活自訂
     return [item for item in keyword_data if query in item]
+
+def selector_raptor(query):
+    field_raptor=raptor_dicts()[0]
+    field_raptor.update({None:None})
+    kws={
+	"air":"空氣污染 空污 空氣汙染 空氣 空品 空".split(),
+	"water":"水量 水質 河川 流域 放流 水措".split(),
+	"sw":"土水 土壤 地下水 廢棄 回收 毒 有害".split(),
+	"eia":"環評 評估 認定 監測 環保事項 補充調查 現地 追蹤 開發".split(),
+	}
+    for k in kws.keys():
+        if any(v in query for v in kws[k]): return k	
+    lst=[]
+    for i in range(5):
+        lst.extend(ask_mistral(query,field_raptor))
+    slaw=set(lst)
+    a=[(lst.count(i),i) for i in slaw]
+    a.sort
+    raptor=a[0][1]
+    if raptor not in field_raptor.values():raptor=None
+    return  raptor
+
+def ask_mistral(query,law_dict):
+    import requests
+    base_url = "http://172.20.31.7:55083"
+    model_name = "mistral:latest"
+    prompt= f"""
+    你是一個聰明、又很有耐心的律師，我會給你一段法律相關的問題，請按照符合度的優先順序，建議我繼續開啟哪(些)個類別的搜尋引擎，
+    請回答英文的名稱(序列)就好，不要有別的解釋或建議、不要有索引值以外的客套話，不可以有超出索引範圍的答案，至多限定有2個答案。
+    以下是我已經建好的索引：{law_dict}。
+    以下是我的詢問：{query}。
+    """
+
+    response = requests.post(
+        f"{base_url}/api/generate",
+        json={
+            "model": model_name,
+            "prompt": prompt,
+            "max_tokens": 2048,
+            "temperature": 0.0,
+            "stream": False  # 設為 False 代表一次回傳完整結果
+        }
+    )
+    if response.status_code == 200:
+        result = response.json()
+        msg=result.get("response", "無回應")
+    else:
+        msg=f"錯誤：{response.status_code} - {response.text}"
+    if type(msg)==str and ' ' in msg:
+        for s in "[]',"+'"':
+            msg=msg.replace(s,'')
+        msg=msg.split()
+    if None in msg and len(msg)>1:
+        msg=[x for x in msg if x is not None]
+    return msg
+
+def raptor_dicts():
+    field_raptor={"空氣污染相關法規":"air","環評、生態與噪音法規":"eia", "水質及水污染相關法規":"water","土壤、毒性物質與廢棄物相關法規":"sw","採購與契約相關法規":"proc"}
+    raptor_field={j:i for i,j in field_raptor.items()}
+    return field_raptor, raptor_field
