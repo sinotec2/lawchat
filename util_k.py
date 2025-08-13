@@ -117,3 +117,15 @@ def authenticate_user():
             return username
         return None
     return  st.session_state['username']
+
+def smart_concat(lab, code):
+    max_overlap = 0
+    # 檢查 lab 結尾和 code 開頭的對齊部分
+    min_len = min(len(lab), len(code))
+    for i in range(1, min_len + 1):
+        if lab[-i:] == code[:i]:
+            max_overlap = i
+    s=max_overlap
+    if code[s:s+max_overlap]==lab[-max_overlap:]:
+        max_overlap*=2
+    return code[max_overlap:]

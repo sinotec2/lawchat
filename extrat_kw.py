@@ -30,8 +30,9 @@ def make_pools(folder_path):
 
     for file in os.listdir(folder_path):
         if file.endswith('.csv'):
-            fname=os.path.join(folder_path, file)
+            fname=os.path.join(folder_path, file)             
             df=pd.read_csv(fname)
+            if any(c not in df.columns for c in ['chapter','article']):continue
             chaps|=set([i for i in df.chapter if type(i)==str and len(i)>1])
             arts|=set([i for i in df.article if type(i)==str and len(i)>1])
     metadata_pool = {
@@ -678,11 +679,41 @@ def laws_dict():
         },  
         "採購相關標準規範": {
             "公共工程委員會標準規範": [
-                "投標須知範本",  
+                "公共工程勞務採購契約範本",  
+                "公共工程技術服務契約範本",  
+                "公共工程專案管理契約範本",  
+                "公共工程投標須知範本",  
+                "公共工程統包工程採購契約範本",  
+                "公共工程資訊服務採購契約範本",  
             ],  
-        }
+            "經濟部產業發展署": [
+                "經濟部產業發展署投標須知範本",  
+                "經濟部產業發展署113年度委辦契約書範本",  
+                "經濟部產業發展署計畫構想書範本",  
+                "經濟部產業發展署廠商評選須知範本",  
+            ],  
+            "臺北市政府": [
+                "臺北市政府投標須知範本",  
+                "臺北市政府需求說明書範本",  
+                "臺北市政府勞務採購契約範本",  
+                "臺北市政府勞務評選須知範本",  
+            ],  
+            "環境部環境管理署": [
+                "環境部環境管理署投標須知範本",  
+                "環境部環境管理署專業技術或資訊服務委辦類採購契約書補充條款範本",  
+		"環境部環境管理署專業(技術或資訊)服務投標須知補充規定",
+                "環境部環境管理署投標須知資訊系統相關補充規定範本",  
+                "環境部環境管理署勞務採購契約範本",  
+		"環境部環境管理署評選作業須知範本",
+            ],  
+        },
+        "契約審查": {  
+            "投標前契約審查表": [
+                "附表-契約書(投標前)審查要項檢查表－公共工程",
+                "附表-契約書(投標前)審查要項檢查表－民間工程",
+            ],  
+        },
     }})      
-
     return laws
 
 def fields_dict():

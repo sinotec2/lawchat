@@ -5,7 +5,7 @@ from extrat_kw import extract_keywords_from_query, make_pools, select_law, get_l
 	 reverse_lookup, reverse_lookupV, fields_dict, selector_raptor, raptor_dicts
 from redis_es import get_all_keywords, get_laws_by_keyword, get_keywords_from_laws, get_laws_by_keywords, display_laws_table,\
          get_laws_by_word, extract_law_and_article_from_query, get_codes_from
-from util_k import copy_to_clipboard_ui, get_latest_username_cookie
+from util_k import copy_to_clipboard_ui, get_latest_username_cookie, smart_concat
 from redis_srch import  create_law_index_if_not_exists, code_retrieval
 import json
 import ast
@@ -147,6 +147,12 @@ def main():
 #cmd="/usr/bin/curl -s -k -I -u yckuang:*** https://172.20.31.6/ICT.law_query/ -o ldap.json;grep X-LDAP-User ldap.json|cut -d' ' -f2"
 #    st.session_state["username"] = subprocess.check_output(cmd,shell=True).decode('utf8').strip('\r\n')
     st.set_page_config(page_title="法規查詢小助手", layout="wide")
+
+
+    with st.sidebar:
+        company_website = "https://eng06.sinotech-eng.com/v2/shared/zh/lawchats/streamlit_lawchat.html"
+        st.page_link(company_website,icon="🏠",label="系統手冊📖",use_container_width=True)
+
     if not st.session_state["username"]:
         st.session_state["username"] = get_latest_username_cookie() 
     username=st.session_state["username"] 
@@ -236,8 +242,15 @@ def main():
         with col4:
             if laws_field[main_category][sub_category]:
                 lst=laws_field[main_category][sub_category]
+                replaced=[False for i in lst]
+                for i,l in enumerate(lst):
+                    if sub_category in l:
+                        lst[i]=l.replace(sub_category,'')
+                        replaced[i]=True
                 min_k=min(k,len(lst)-1)
-                st.session_state["regulation"] = st.selectbox("子類別下之法規", lst,index=min_k)
+                reg_chosen = st.selectbox("子類別下之法規", lst,index=min_k)
+                if replaced[lst.index(reg_chosen)]:reg_chosen=f"{sub_category}{reg_chosen}"
+                st.session_state["regulation"] = reg_chosen
                 regulation = st.session_state["regulation"]
     elif mode == "名稱搜尋":
         if st.session_state["regulation"] or regulation:
@@ -375,8 +388,7 @@ def main():
         regulation=st.session_state["regulation"]
         with open(os.path.join(folder_path, f"{regulation}.json"), 'r', encoding='utf-8') as f:
             data = json.load(f)
-            dash_in_keys=[i for i in list(data["codes"].keys()) if '-' in i]            
-            if "範本" in regulation or len(dash_in_keys)>0: 
+            if any(x in regulation for x in "範本 契約 須知".split()) :
                 ds=list(data["codes"].keys())
             else:
                 ds=[f"第 {i+1} 條" for i in range(len(data["codes"]))]
@@ -405,7 +417,9 @@ def main():
                     if d not in data["codes"].keys(): 
                         st.write(d)
                         continue
-                    st.sidebar.markdown(f"**{d}**{data['codes'][d]}", unsafe_allow_html=True)
+                    code=smart_concat(d,data['codes'][d])
+                    code=smart_concat(d,code)
+                    st.sidebar.markdown(f"**{d}** {code}", unsafe_allow_html=True)
                     if "tables" in data.keys():
                         if d in  data["tables"].keys():
                             tabstr=data["tables"][d].replace('||','|\n|')
