@@ -9,7 +9,7 @@ def ollama_settings():
     from llama_index.embeddings.ollama import OllamaEmbedding
     model = "llama3.1:latest"
     model = "mistral:latest"
-    Settings.llm = Ollama(model=model, request_timeout=360.0, base_url="http://172.20.31.7:55083/",
+    Settings.llm = Ollama(model=model, request_timeout=360.0, base_url="http://172.20.31.7:55080/",
         temperature=0.0,
         dimensionality=1024,
         system_prompt="""You are an expert on
@@ -27,7 +27,7 @@ def ollama_settings():
         model_name="quentinz/bge-large-zh-v1.5:latest",
         dimensionality=1024,
         request_timeout=360.0,
-        base_url="http://172.20.31.7:55083/",)
+        base_url="http://172.20.31.7:55080/",)
     return True
 
 def load_documents(json_path):
@@ -42,15 +42,27 @@ def build_index(json_path):
     return VectorStoreIndex.from_documents(docs)
 
 def wrt_yaml(yaml,lawname):
-    col=['id','chapter', 'article', 'item', 'clause', 'points','LawName','parentname','LawDate','fullpath','doc_id']
-    with open(yaml,'w') as f:
-        f.write(f"index:\n  name: {lawname}\n  prefix: {lawname}/vector\n  key_separator: _\n  storage_type: hash\n")
-        f.write(f"fields:\n")
-        for c in col:
-            f.write(f"- name: {c}\n  type: tag\n  attrs:\n    sortable: false\n")
-        f.write(f"- name: text\n  type: text\n  attrs:\n    sortable: false\n")
-        f.write(f"- name: vector\n  type: vector\n  attrs:\n    dims: 1024\n    algorithm: hnsw\n    datatype: float32\n    distance_metric: cosine\nversion: 0.1.0\n")
-    return True
+    if lawname.split('-')[0] != "interpretations":
+        col=['id','chapter', 'article', 'item', 'clause', 'points','LawName','parentname','LawDate','fullpath','doc_id']
+        with open(yaml,'w') as f:
+            f.write(f"index:\n  name: {lawname}\n  prefix: {lawname}/vector\n  key_separator: _\n  storage_type: hash\n")
+            f.write(f"fields:\n")
+            for c in col:
+                f.write(f"- name: {c}\n  type: tag\n  attrs:\n    sortable: false\n")
+            f.write(f"- name: text\n  type: text\n  attrs:\n    sortable: false\n")
+            f.write(f"- name: vector\n  type: vector\n  attrs:\n    dims: 1024\n    algorithm: hnsw\n    datatype: float32\n    distance_metric: cosine\nversion: 0.1.0\n")
+    else:
+        col=['id','agency', 'doc_no', 'date', 'category', 'regulations_links','source_file', 'doc_id' ]
+        with open(yaml,'w') as f:
+            f.write(f"index:\n  name: {lawname}\n  prefix: {lawname}/vector\n  key_separator: _\n  storage_type: hash\n")
+            f.write(f"fields:\n")
+            for c in col:
+                typ="tag"
+                if c in "title regulations regulations_links".split():typ="text"
+                f.write(f"- name: {c}\n  type: {typ}\n  attrs:\n    sortable: false\n")
+            f.write(f"- name: text\n  type: text\n  attrs:\n    sortable: false\n")
+            f.write(f"- name: vector\n  type: vector\n  attrs:\n    dims: 1024\n    algorithm: hnsw\n    datatype: float32\n    distance_metric: cosine\nversion: 0.1.0\n")
+    return col
 
 def build_save(json_path):
 

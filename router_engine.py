@@ -9,7 +9,7 @@ from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.core import SimpleDirectoryReader, Settings
 model = "llama3.1:latest"
 model = "mistral:latest"
-llm = Ollama(model=model, request_timeout=360.0, base_url="http://172.20.31.7:55083/",
+llm = Ollama(model=model, request_timeout=360.0, base_url="http://172.20.31.7:55080/",
         temperature=0.0,
         system_prompt="""You are an expert on
         the environmental engineering and your
@@ -28,7 +28,7 @@ embed_model = OllamaEmbedding(
         dimensionality=768,
         request_timeout=360.0,
         num_workers=10,
-        base_url="http://172.20.31.7:55083/",)
+        base_url="http://172.20.31.7:55080/",)
 Settings.embed_model = embed_model
 
 def init_router_engine(username,lawname,raptor):

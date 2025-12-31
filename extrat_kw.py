@@ -806,7 +806,7 @@ def selector_raptor(query):
 
 def ask_mistral(query,law_dict):
     import requests
-    base_url = "http://172.20.31.7:55083"
+    base_url = "http://172.20.31.7:55080"
     model_name = "mistral:latest"
     prompt= f"""
     你是一個聰明、又很有耐心的律師，我會給你一段法律相關的問題，請按照符合度的優先順序，建議我繼續開啟哪(些)個類別的搜尋引擎，
